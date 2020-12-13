@@ -1,0 +1,9 @@
+[submodule "depends/pistache"]
+	path = depends/pistache
+	url = https://github.com/pistacheio/pistache
+[submodule "depends/json"]
+	path = depends/json
+	url = https://github.com/nlohmann/json.git
+[submodule "depends/ffiasm"]
+	path = depends/ffiasm
+	url = https://github.com/iden3/ffiasm.git

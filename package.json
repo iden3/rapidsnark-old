@@ -1,0 +1,32 @@
+{
+  "name": "rapidsnark",
+  "version": "0.0.1",
+  "description": "Snark implementation in C++",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "task": "node ./tasksfile.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.io/iden3/rapidsnark"
+  },
+  "keywords": [
+    "snark",
+    "prover",
+    "ethereum",
+    "rollup",
+    "zksnark",
+    "zero",
+    "knowledge",
+    "fast"
+  ],
+  "author": "Jordi Baylina",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "tasksfile": "^5.1.1"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  }
+}

@@ -1,0 +1,67 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+		{
+			"label": "buildProverServer",
+			"type": "shell",
+			"command": "npx task buildProverServer /home/jordi/circuits/tools/rollup-376-32-256-64/circuit-376-32-256-64.cpp",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": {
+				"owner": "cpp",
+				"fileLocation": [
+					"relative",
+					"${workspaceFolder}/build"
+				],
+				"pattern": [
+					{
+						"regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+						"file": 1,
+						"line": 2,
+						"column": 3,
+						"severity": 4,
+						"message": 5
+					}
+				]
+			}
+		},
+		{
+			"label": "buildProver",
+			"type": "shell",
+			"command": "npx task buildProver",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": {
+				"owner": "cpp",
+				"fileLocation": [
+					"relative",
+					"${workspaceFolder}/build"
+				],
+				"pattern": [
+					{
+						"regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+						"file": 1,
+						"line": 2,
+						"column": 3,
+						"severity": 4,
+						"message": 5
+					}
+				]
+			}
+		},
+	]
+}
