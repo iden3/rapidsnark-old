@@ -7,7 +7,7 @@
 #include <gmp.h>
 #include <memory>
 
-#include "alt_bn128.hpp"
+#include <alt_bn128.hpp>
 #include "binfile_utils.hpp"
 #include "zkey_utils.hpp"
 #include "wtns_utils.hpp"

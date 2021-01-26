@@ -4,18 +4,6 @@ function cleanAll() {
     sh("rm -rf build");
 }
 
-function downloadGoogleTest() {
-    sh("mkdir -p build");
-    sh("wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz", {cwd: "build"});
-    sh("tar xzf release-1.10.0.tar.gz", {cwd: "build"});
-    sh("rm  release-1.10.0.tar.gz", {cwd: "build"});
-}
-
-function compileGoogleTest() {
-    sh("g++ -Igoogletest -Igoogletest/include -c googletest/src/gtest-all.cc", {cwd: "build/googletest-release-1.10.0"});
-    sh("ar -rv libgtest.a gtest-all.o",{cwd: "build/googletest-release-1.10.0"});
-}
-
 function createFieldSources() {
     sh("node ../depends/ffiasm/src/buildzqfield.js -q 21888242871839275222246405745257275088696311157297823662689037894645226208583 -n Fq", {cwd: "build"});
     sh("node ../depends/ffiasm/src/buildzqfield.js -q 21888242871839275222246405745257275088548364400416034343698204186575808495617 -n Fr", {cwd: "build"});
@@ -44,26 +32,27 @@ function buildPistche() {
 function buildProverServer() {
     sh("cp " + process.argv[3] + " circuit.cpp", {cwd: "build", nopipe: true});
     sh("g++" +
-        " -Igoogletest-release-1.10.0/googletest/include"+
         " -I."+
         " -I../src"+
         " -I../depends/pistache/include"+
         " -I../depends/json/single_include"+
+        " -I../depends/ffiasm/c"+
+        " -I../depends/circom_runtime/c"+
         " ../src/main_proofserver.cpp"+
         " ../src/proverapi.cpp"+
         " ../src/fullprover.cpp"+
-        " ../src/calcwit.cpp"+
-        " ../src/utils.cpp"+
-        " ../src/misc.cpp"+
-        " ../src/naf.cpp"+
-        " ../src/splitparstr.cpp"+
+        " ../src/binfile_utils.cpp"+
+        " ../src/zkey_utils.cpp"+
+        " ../depends/circom_runtime/c/calcwit.cpp"+
+        " ../depends/circom_runtime/c/utils.cpp"+
+        " ../depends/ffiasm/c/misc.cpp"+
+        " ../depends/ffiasm/c/naf.cpp"+
+        " ../depends/ffiasm/c/splitparstr.cpp"+
+        " ../depends/ffiasm/c/alt_bn128.cpp"+
         " fq.cpp"+
         " fq.o"+
         " fr.cpp"+
         " fr.o"+
-        " ../src/alt_bn128.cpp"+
-        " ../src/binfile_utils.cpp"+
-        " ../src/zkey_utils.cpp"+
         " circuit.cpp"+
         " -L../depends/pistache/build/src -lpistache"+
         " -o proverServer"+
@@ -74,17 +63,18 @@ function buildProverServer() {
 
 function buildProver() {
     sh("g++" +
-        " -Igoogletest-release-1.10.0/googletest/include"+
         " -I."+
-        " -I../c"+
-        " ../src/misc.cpp"+
-        " ../src/naf.cpp"+
-        " ../src/splitparstr.cpp"+
-        " ../src/alt_bn128.cpp"+
+        " -I../src"+
+        " -I../depends/ffiasm/c"+
+        " -I../depends/json/single_include"+
         " ../src/main_prover.cpp"+
         " ../src/binfile_utils.cpp"+
         " ../src/zkey_utils.cpp"+
         " ../src/wtns_utils.cpp"+
+        " ../depends/ffiasm/c/misc.cpp"+
+        " ../depends/ffiasm/c/naf.cpp"+
+        " ../depends/ffiasm/c/splitparstr.cpp"+
+        " ../depends/ffiasm/c/alt_bn128.cpp"+
         " fq.cpp"+
         " fq.o"+
         " fr.cpp"+
@@ -97,8 +87,6 @@ function buildProver() {
 
 cli({
     cleanAll,
-    downloadGoogleTest,
-    compileGoogleTest,
     createFieldSources,
     buildPistche,
     buildProverServer,
