@@ -82,7 +82,7 @@ function buildProver() {
         " fr.cpp"+
         " fr.o"+
         " -o prover" +
-        " -fmax-errors=5 -std=c++17 -pthread -lgmp -O3 -fopenmp", {cwd: "build", nopipe: true}
+        " -fmax-errors=5 -std=c++17 -pthread -lgmp -lsodium -O3 -fopenmp", {cwd: "build", nopipe: true}
     );
 }
 

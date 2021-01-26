@@ -1,3 +1,5 @@
+#include <sodium.h>
+
 namespace Groth16 {
 
 template <typename Engine>
@@ -195,9 +197,11 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
     typename Engine::FrElement s;
     typename Engine::FrElement rs;
 
-    // TODO set to random
     E.fr.copy(r, E.fr.zero());
     E.fr.copy(s, E.fr.zero());
+
+    randombytes_buf((void *)&(r.v[0]), sizeof(r)-1);
+    randombytes_buf((void *)&(s.v[0]), sizeof(s)-1);
 
     typename Engine::G1Point p1;
     typename Engine::G2Point p2;
@@ -226,7 +230,7 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
     E.fr.toMontgomery(rs, rs);
 
     E.g1.mulByScalar(p1, vk_delta1, (uint8_t *)&rs, sizeof(rs));
-    E.g1.add(pi_c, pi_c, p1);
+    E.g1.sub(pi_c, pi_c, p1);
 
     Proof<Engine> *p = new Proof<Engine>(Engine::engine);
     E.g1.copy(p->A, pi_a);
