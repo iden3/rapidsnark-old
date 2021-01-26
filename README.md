@@ -2,6 +2,17 @@
 
 rapid snark is a zkSnark proof generation written in C++ and intel assembly. That generates proofs created in [circom](https://github.com/iden3/snarkjs) and [snarkjs](https://github.com/iden3/circom) very fast.
 
+## dependencies
+
+You should have installed gcc and gmp (development)
+
+In ubuntu:
+
+````
+sudo apt install build-essential
+sudo apt-get install libgmp-dev
+````
+
 ## compile prover
 
 ````sh
