@@ -6,6 +6,7 @@
 #include <fstream>
 #include <gmp.h>
 #include <memory>
+#include <stdexcept>
 
 #include <alt_bn128.hpp>
 #include "binfile_utils.hpp"
