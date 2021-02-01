@@ -1,3 +1,4 @@
+#include <stdexcept>
 
 #include "zkey_utils.hpp"
 

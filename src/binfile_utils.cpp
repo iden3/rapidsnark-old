@@ -5,6 +5,7 @@
 #include <system_error>
 #include <string>
 #include <memory.h>
+#include <stdexcept>
 
 #include "binfile_utils.hpp"
 
