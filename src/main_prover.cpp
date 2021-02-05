@@ -7,6 +7,7 @@
 #include <gmp.h>
 #include <memory>
 #include <stdexcept>
+#include <nlohmann/json.hpp>
 
 #include <alt_bn128.hpp>
 #include "binfile_utils.hpp"
@@ -14,14 +15,16 @@
 #include "wtns_utils.hpp"
 #include "groth16.hpp"
 
+using json = nlohmann::json;
+
 #define handle_error(msg) \
            do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
 int main(int argc, char **argv) {
 
-    if (argc != 4) {
+    if (argc != 5) {
         std::cerr << "Invalid number of parameters:\n";
-        std::cerr << "Usage: prove <circuit.zkey> <witness.wtns> <proof.json>\n";
+        std::cerr << "Usage: prove <circuit.zkey> <witness.wtns> <proof.json> <public.json>\n";
         return -1;
     }
 
@@ -34,9 +37,7 @@ int main(int argc, char **argv) {
         std::string zkeyFilename = argv[1];
         std::string wtnsFilename = argv[2];
         std::string proofFilename = argv[3];
-
-        std::ofstream proofFile;
-        proofFile.open (proofFilename);
+        std::string publicFilename = argv[4];
 
         auto zkey = BinFileUtils::openExisting(zkeyFilename, "zkey", 1);
         auto zkeyHeader = ZKeyUtils::loadHeader(zkey.get());
@@ -72,9 +73,24 @@ int main(int argc, char **argv) {
         );
         AltBn128::FrElement *wtnsData = (AltBn128::FrElement *)wtns->getSectionData(2);
         auto proof = prover->prove(wtnsData);
-        proofFile << proof->toJson();
 
+        std::ofstream proofFile;
+        proofFile.open (proofFilename);
+        proofFile << proof->toJson();
         proofFile.close();
+
+        std::ofstream publicFile;
+        publicFile.open (publicFilename);
+
+        json jsonPublic;
+        AltBn128::FrElement aux;
+        for (int i=1; i<=zkeyHeader->nPublic; i++) {
+            AltBn128::Fr.toMontgomery(aux, wtnsData[i]);
+            jsonPublic.push_back(AltBn128::Fr.toString(aux));
+        }
+
+        publicFile << jsonPublic;
+        publicFile.close();
 
     } catch (std::exception& e) {
         mpz_clear(altBbn128r);

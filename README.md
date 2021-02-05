@@ -31,12 +31,12 @@ You have a full prover compiled in the build directory.
 So you can replace snarkjs command:
 
 ````sh
-snarkjs groth16 prove <circuit.zkey> <witness.wtns> <proof.json>
+snarkjs groth16 prove <circuit.zkey> <witness.wtns> <proof.json> <public.json>
 ````
 
 by this one
 ````sh
-./build/prove <circuit.zkey> <witness.wtns> <proof.json>
+./build/prove <circuit.zkey> <witness.wtns> <proof.json> <public.json>
 ````
 
 ## Benchmark
