@@ -137,8 +137,8 @@ json FullProver::getStatus() {
         st["error"] = errString;
     } else if (status == success) {
         st["status"] = "success";
-        st["proof"] = proof;
-        st["pubData"] = pubData;
+        st["proof"] = proof.dump();
+        st["pubData"] = pubData.dump();
     } else if (status == busy) {
         st["status"] = "busy";
     }

@@ -58,7 +58,7 @@ function buildProverServer() {
         " circuit.cpp"+
         " -L../depends/pistache/build/src -lpistache"+
         " -o proverServer"+
-        " -fmax-errors=5 -pthread -std=c++17 -fopenmp -lgmp -g -DSANITY_CHECK", {cwd: "build", nopipe: true}
+        " -fmax-errors=5 -pthread -std=c++17 -fopenmp -lgmp -lsodium -g -DSANITY_CHECK", {cwd: "build", nopipe: true}
     );
 }
 
