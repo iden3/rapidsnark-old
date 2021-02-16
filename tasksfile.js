@@ -74,6 +74,7 @@ function buildProver() {
         " ../src/binfile_utils.cpp"+
         " ../src/zkey_utils.cpp"+
         " ../src/wtns_utils.cpp"+
+        " ../src/logger.cpp"+
         " ../depends/ffiasm/c/misc.cpp"+
         " ../depends/ffiasm/c/naf.cpp"+
         " ../depends/ffiasm/c/splitparstr.cpp"+
