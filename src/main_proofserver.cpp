@@ -3,11 +3,18 @@
 
 #include "proverapi.hpp"
 #include "fullprover.hpp"
+#include "logger.hpp"
 
+using namespace CPlusPlusLogging;
 using namespace Pistache;
 using namespace Pistache::Rest;
 
 int main(int argc, char **argv) {
+
+    Logger::getInstance()->enableConsoleLogging();
+    Logger::getInstance()->updateLogLevel(LOG_LEVEL_DEBUG);
+    LOG_INFO("Initializing server...");
+
     FullProver fullProver(argv[1], argv[2]);
     ProverAPI proverAPI(fullProver);
     Address addr(Ipv4::any(), Port(9080));
@@ -22,6 +29,6 @@ int main(int argc, char **argv) {
     Routes::Post(router, "/input", Routes::bind(&ProverAPI::postInput, &proverAPI));
     Routes::Post(router, "/cancel", Routes::bind(&ProverAPI::postCancel, &proverAPI));
     server.setHandler(router.handler());
-    cout << "Server ready...\n";
+    LOG_INFO("Server ready on port 9080...");
     server.serve();
 }

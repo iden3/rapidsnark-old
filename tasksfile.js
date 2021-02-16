@@ -32,7 +32,7 @@ function buildPistche() {
 
 
 function buildProverServer() {
-    sh("cp " + process.argv[3] + " circuit.cpp", {cwd: "build", nopipe: true});
+    sh("cp " + process.argv[3] + " build/circuit.cpp", {cwd: ".", nopipe: true});
     sh("g++" +
         " -I."+
         " -I../src"+
@@ -45,6 +45,7 @@ function buildProverServer() {
         " ../src/fullprover.cpp"+
         " ../src/binfile_utils.cpp"+
         " ../src/zkey_utils.cpp"+
+        " ../src/logger.cpp"+
         " ../depends/circom_runtime/c/calcwit.cpp"+
         " ../depends/circom_runtime/c/utils.cpp"+
         " ../depends/ffiasm/c/misc.cpp"+

@@ -1,5 +1,9 @@
 #include <sodium.h>
 
+#include "logger.hpp"
+
+using namespace CPlusPlusLogging;
+
 namespace Groth16 {
 
 template <typename Engine>
@@ -44,7 +48,7 @@ std::unique_ptr<Prover<Engine>> makeProver(
 template <typename Engine>
 std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement *wtns) {
 
-    std::cout << "Start Initializing a b c A\n";
+    LOG_TRACE("Start Initializing a b c A");
     auto a = new typename Engine::FrElement[domainSize];
     auto b = new typename Engine::FrElement[domainSize];
     auto c = new typename Engine::FrElement[domainSize];
@@ -55,7 +59,7 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
         E.fr.copy(b[i], E.fr.zero());
     }
 
-    std::cout << "Processing coefs\n";
+    LOG_TRACE("Processing coefs");
     #define NLOCKS 1024
     omp_lock_t locks[NLOCKS];
     for (int i=0; i<NLOCKS; i++) omp_init_lock(&locks[i]);
@@ -81,7 +85,7 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
     for (int i=0; i<NLOCKS; i++) omp_destroy_lock(&locks[i]);
 
 
-    std::cout << "Calculating c\n";
+    LOG_TRACE("Calculating c");
     #pragma omp parallel for
     for (u_int32_t i=0; i<domainSize; i++) {
         E.fr.mul(
@@ -91,107 +95,116 @@ std::unique_ptr<Proof<Engine>> Prover<Engine>::prove(typename Engine::FrElement 
         );
     }
 
-    std::cout << "Initializing fft\n";
+    LOG_TRACE("Initializing fft");
     u_int32_t domainPower = fft->log2(domainSize);
 
-    std::cout << "Start iFFT A\n";
+    LOG_TRACE("Start iFFT A");
     fft->ifft(a, domainSize);
-    cout << "a After ifft:" << endl;
-    cout << E.fr.toString(a[0]) << endl;
-    cout << E.fr.toString(a[1]) << endl;
-    std::cout << "Start Shift A\n";
+    LOG_TRACE("a After ifft:");
+    LOG_DEBUG(E.fr.toString(a[0]).c_str());
+    LOG_DEBUG(E.fr.toString(a[1]).c_str());
+    LOG_TRACE("Start Shift A");
     #pragma omp parallel for
     for (u_int64_t i=0; i<domainSize; i++) {
         E.fr.mul(a[i], a[i], fft->root(domainPower+1, i));
     }
-    cout << "a After shift:" << endl;
-    cout << E.fr.toString(a[0]) << endl;
-    cout << E.fr.toString(a[1]) << endl;
-    std::cout << "Start FFT A\n";
+    LOG_TRACE("a After shift:");
+    LOG_DEBUG(E.fr.toString(a[0]).c_str());
+    LOG_DEBUG(E.fr.toString(a[1]).c_str());
+    LOG_TRACE("Start FFT A");
     fft->fft(a, domainSize);
-    cout << "a After fft:" << endl;
-    cout << E.fr.toString(a[0]) << endl;
-    cout << E.fr.toString(a[1]) << endl;
-
-    std::cout << "Start iFFT B\n";
+    LOG_TRACE("a After fft:");
+    LOG_DEBUG(E.fr.toString(a[0]).c_str());
+    LOG_DEBUG(E.fr.toString(a[1]).c_str());
+    LOG_TRACE("Start iFFT B");
     fft->ifft(b, domainSize);
-    cout << "b After ifft:" << endl;
-    cout << E.fr.toString(b[0]) << endl;
-    cout << E.fr.toString(b[1]) << endl;
-    std::cout << "Start Shift B\n";
+    LOG_TRACE("b After ifft:");
+    LOG_DEBUG(E.fr.toString(b[0]).c_str());
+    LOG_DEBUG(E.fr.toString(b[1]).c_str());
+    LOG_TRACE("Start Shift B");
     #pragma omp parallel for
     for (u_int64_t i=0; i<domainSize; i++) {
         E.fr.mul(b[i], b[i], fft->root(domainPower+1, i));
     }
-    cout << "b After shift:" << endl;
-    cout << E.fr.toString(b[0]) << endl;
-    cout << E.fr.toString(b[1]) << endl;
-    std::cout << "Start FFT B\n";
+    LOG_TRACE("b After shift:");
+    LOG_DEBUG(E.fr.toString(b[0]).c_str());
+    LOG_DEBUG(E.fr.toString(b[1]).c_str());
+    LOG_TRACE("Start FFT B");
     fft->fft(b, domainSize);
-    cout << "b After fft:" << endl;
-    cout << E.fr.toString(b[0]) << endl;
-    cout << E.fr.toString(b[1]) << endl;
+    LOG_TRACE("b After fft:");
+    LOG_DEBUG(E.fr.toString(b[0]).c_str());
+    LOG_DEBUG(E.fr.toString(b[1]).c_str());
 
-    std::cout << "Start iFFT C\n";
+    LOG_TRACE("Start iFFT C");
     fft->ifft(c, domainSize);
-    cout << "c After ifft:" << endl;
-    cout << E.fr.toString(c[0]) << endl;
-    cout << E.fr.toString(c[1]) << endl;
-    std::cout << "Start Shift C\n";
+    LOG_TRACE("c After ifft:");
+    LOG_DEBUG(E.fr.toString(c[0]).c_str());
+    LOG_DEBUG(E.fr.toString(c[1]).c_str());
+    LOG_TRACE("Start Shift C");
     #pragma omp parallel for
     for (u_int64_t i=0; i<domainSize; i++) {
         E.fr.mul(c[i], c[i], fft->root(domainPower+1, i));
     }
-    cout << "c After shift:" << endl;
-    cout << E.fr.toString(c[0]) << endl;
-    cout << E.fr.toString(c[1]) << endl;
-    std::cout << "Start FFT C\n";
+    LOG_TRACE("c After shift:");
+    LOG_DEBUG(E.fr.toString(c[0]).c_str());
+    LOG_DEBUG(E.fr.toString(c[1]).c_str());
+    LOG_TRACE("Start FFT C");
     fft->fft(c, domainSize);
-    cout << "c After fft:" << endl;
-    cout << E.fr.toString(c[0]) << endl;
-    cout << E.fr.toString(c[1]) << endl;
+    LOG_TRACE("c After fft:");
+    LOG_DEBUG(E.fr.toString(c[0]).c_str());
+    LOG_DEBUG(E.fr.toString(c[1]).c_str());
 
-    std::cout << "Start ABC\n";
+    LOG_TRACE("Start ABC");
     #pragma omp parallel for
     for (u_int64_t i=0; i<domainSize; i++) {
         E.fr.mul(a[i], a[i], b[i]);
         E.fr.sub(a[i], a[i], c[i]);
         E.fr.fromMontgomery(a[i], a[i]);
     }
-    cout << "abc:" << endl;
-    cout << E.fr.toString(a[0]) << endl;
-    cout << E.fr.toString(a[1]) << endl;
+    LOG_TRACE("abc:");
+    LOG_DEBUG(E.fr.toString(a[0]).c_str());
+    LOG_DEBUG(E.fr.toString(a[1]).c_str());
 
     delete b;
     delete c;
 
-    std::cout << "Start Multiexp H\n";
+    LOG_TRACE("Start Multiexp H");
     typename Engine::G1Point pih;
     E.g1.multiMulByScalar(pih, pointsH, (uint8_t *)a, sizeof(a[0]), domainSize);
-    cout << "pih: " << E.g1.toString(pih) << "\n";
+    std::ostringstream ss1;
+    ss1 << "pih: " << E.g1.toString(pih);
+    LOG_DEBUG(ss1);
 
     delete a;
 
-    std::cout << "Start Multiexp A\n";
+    LOG_TRACE("Start Multiexp A");
     uint32_t sW = sizeof(wtns[0]);
     typename Engine::G1Point pi_a;
     E.g1.multiMulByScalar(pi_a, pointsA, (uint8_t *)wtns, sW, nVars);
-    cout << "pi_a: " << E.g1.toString(pi_a) << "\n";
+    std::ostringstream ss2;
+    ss2 << "pi_a: " << E.g1.toString(pi_a);
+    LOG_DEBUG(ss2);
 
-    std::cout << "Start Multiexp B1\n";
+    LOG_TRACE("Start Multiexp B1");
     typename Engine::G1Point pib1;
     E.g1.multiMulByScalar(pib1, pointsB1, (uint8_t *)wtns, sW, nVars);
-    cout << "pib1: " << E.g1.toString(pib1) << "\n";
+    std::ostringstream ss3;
+    ss3 << "pib1: " << E.g1.toString(pib1);
+    LOG_DEBUG(ss3);
 
-    std::cout << "Start Multiexp B2\n";
+    LOG_TRACE("Start Multiexp B2");
     typename Engine::G2Point pi_b;
     E.g2.multiMulByScalar(pi_b, pointsB2, (uint8_t *)wtns, sW, nVars);
-    cout << "pi_b: " << E.g2.toString(pi_b) << "\n";
+    std::ostringstream ss4;
+    ss4 << "pi_b: " << E.g2.toString(pi_b);
+    LOG_DEBUG(ss4);
 
-    std::cout << "Start Multiexp C\n";
+    LOG_TRACE("Start Multiexp C");
     typename Engine::G1Point pi_c;
     E.g1.multiMulByScalar(pi_c, pointsC, (uint8_t *)((uint64_t)wtns + (nPublic +1)*sW), sW, nVars-nPublic-1);
-    cout << "pi_c: " << E.g1.toString(pi_c) << "\n";
+    std::ostringstream ss5;
+    ss5 << "pi_c: " << E.g1.toString(pi_c);
+    LOG_DEBUG(ss5);
 
     typename Engine::FrElement r;
     typename Engine::FrElement s;

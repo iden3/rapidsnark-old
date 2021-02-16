@@ -11,6 +11,9 @@ using json = nlohmann::json;
 #include "fullprover.hpp"
 #include "fr.hpp"
 
+#include "logger.hpp"
+using namespace CPlusPlusLogging;
+
 FullProver::FullProver(std::string datFileName, std::string zkeyFileName) {
     pendingInput="";
     wtns=NULL;
@@ -53,22 +56,26 @@ FullProver::~FullProver() {
 }
 
 void FullProver::startProve(std::string input) {
+    LOG_TRACE("FullProver::startProve begin");
+    LOG_DEBUG(input);
     std::lock_guard<std::mutex> guard(mtx);
     pendingInput = input;
     if (status == busy) {
         abort();
     }
     checkPending();
+    LOG_TRACE("FullProver::startProve end");
 }
 
 
 void FullProver::checkPending() {
+    LOG_TRACE("FullProver::checkPending begin");
     if (status != busy) {
         std::string input = pendingInput;
         if (input != "") {
+            status = busy;
             executingInput = pendingInput;
             pendingInput = "";
-            status = busy;
             errString = "";
             canceled = false;
             proof = nlohmann::detail::value_t::null;
@@ -76,18 +83,26 @@ void FullProver::checkPending() {
             th.detach();
         }
     }
+    LOG_TRACE("FullProver::checkPending end");
 }
 
 void FullProver::thread_calculateProve() {
+    LOG_TRACE("FullProver::thread_calculateProve start");
     try {
-        calcWit->calculateProve(wtns, executingInput, [this](){ return isCanceled(); });
+        calcWit->calculateProve(wtns, executingInput, [this](){ return /* TODO isCanceled() */ false; });
         pubData.clear();
+        LOG_TRACE("FullProver::thread_calculateProve calculating prove");
         for (int i=1; i<=circuit->NPublic; i++) {
             AltBn128::FrElement aux;
             AltBn128::Fr.toMontgomery(aux, wtns[i]);
             pubData.push_back(AltBn128::Fr.toString(aux));
         }
-        proof = prover->prove(wtns)->toJson();
+        if (!isCanceled()) {
+            proof = prover->prove(wtns)->toJson();
+        } else {
+            LOG_TRACE("AVOIDING prove");
+            proof = {};
+        }
 
         calcFinished();
     } catch (std::runtime_error e) {
@@ -96,52 +111,75 @@ void FullProver::thread_calculateProve() {
         }
         calcFinished();
     }
+    LOG_TRACE("FullProver::thread_calculateProve end");
 }
 
 
 void FullProver::calcFinished() {
     std::lock_guard<std::mutex> guard(mtx);
+    LOG_TRACE("FullProver::calcFinished start");
     if (canceled) {
+        LOG_TRACE("FullProver::calcFinished aborted");
         status = aborted;
     } else if (errString != "") {
+        LOG_TRACE("FullProver::calcFinished failed");
         status = failed;
     } else {
+        LOG_TRACE("FullProver::calcFinished success");
         status = success;
     }
     canceled = false;
     executingInput = "";
     checkPending();
+    LOG_TRACE("FullProver::calcFinished end");
 }
 
 
 bool FullProver::isCanceled() {
     std::lock_guard<std::mutex> guard(mtx);
+    LOG_TRACE("FullProver::isCanceled start");
+    if (canceled) {
+        LOG_TRACE("FullProver::isCanceled canceled==true");
+    }
+    LOG_TRACE("FullProver::isCanceled end");
     return canceled;
 }
 
 void FullProver::abort() {
     std::lock_guard<std::mutex> guard(mtx);
-    if (status!= busy) return;
+    LOG_TRACE("FullProver::abort start");
+    if (status!= busy) {
+        LOG_TRACE("FullProver::abort end -> not usy");
+        return;
+    }
     canceled = true;
+    LOG_TRACE("FullProver::abort end -> canceled=true");
 }
 
 
 json FullProver::getStatus() {
+    LOG_TRACE("FullProver::getStatus start");
     json st;
     if (status == ready) {
+        LOG_TRACE("ready");
         st["status"] = "ready";
     } else if (status == aborted) {
+        LOG_TRACE("aborted");
         st["status"] = "aborted";
     } else if (status == failed) {
+        LOG_TRACE("failed");
         st["status"] = "failed";
         st["error"] = errString;
     } else if (status == success) {
+        LOG_TRACE("success");
         st["status"] = "success";
         st["proof"] = proof.dump();
         st["pubData"] = pubData.dump();
     } else if (status == busy) {
+        LOG_TRACE("busy");
         st["status"] = "busy";
     }
+    LOG_TRACE("FullProver::getStatus end");
     return st;
 }
 
@@ -149,6 +187,7 @@ json FullProver::getStatus() {
 #define ADJ_P(a) *((void **)&a) = (void *)(((char *)circuit)+ (uint64_t)(a))
 
 Circom_Circuit *FullProver::loadCircuit(std::string const &datFileName) {
+    LOG_TRACE("FullProver::loadCircuit start");
     Circom_Circuit *circuitF;
     Circom_Circuit *circuit;
 
@@ -157,7 +196,9 @@ Circom_Circuit *FullProver::loadCircuit(std::string const &datFileName) {
 
     fd = open(datFileName.c_str(), O_RDONLY);
     if (fd == -1) {
-        std::cout << ".dat file not found: " << datFileName << "\n";
+        std::ostringstream ss;
+        ss << ".dat file not found: " << datFileName << "\n";
+        LOG_ERROR(ss);
         throw std::system_error(errno, std::generic_category(), "open");
     }
 
@@ -190,6 +231,7 @@ Circom_Circuit *FullProver::loadCircuit(std::string const &datFileName) {
         ADJ_P(circuit->componentEntries[i].sizes);
     }
 
+    LOG_TRACE("FullProver::loadCircuit end");
     return circuit;
 }
 
