@@ -12,6 +12,7 @@ In ubuntu:
 sudo apt install build-essential
 sudo apt-get install libgmp-dev
 sudo apt-get install libsodium-dev
+sudo apt-get install nasm
 ````
 
 ## compile prover
