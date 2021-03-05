@@ -22,7 +22,8 @@ npm install
 git submodule init
 git submodule update
 npx task createFieldSources
-npx task buildProver
+npx task buildPistche
+npx task buildProver <circuit_cpp location>
 ````
 
 ## Building proof
