@@ -23,7 +23,15 @@ git submodule init
 git submodule update
 npx task createFieldSources
 npx task buildPistche
+````
+
+## compile prover in stand alone mode
+````
 npx task buildProver <circuit_cpp location>
+````
+## compile prover in server mode
+````
+npx task buildProverServer <circuit_cpp location>
 ````
 
 ## Building proof
