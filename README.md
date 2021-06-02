@@ -34,6 +34,11 @@ npx task buildProver <circuit_cpp location>
 npx task buildProverServer <circuit_cpp location>
 ````
 
+## Lunch prover in server mode
+````
+./rapidsnark/build/proverServer  <circuit_dat> <circuit_zkey>
+````
+
 ## Building proof
 
 You have a full prover compiled in the build directory.
