@@ -25,6 +25,11 @@ npx task createFieldSources
 npx task buildProver
 ````
 
+## compile with docker
+```sh
+docker build . --tag=rapidsnark
+```
+
 ## Building proof
 
 You have a full prover compiled in the build directory.
@@ -38,6 +43,11 @@ snarkjs groth16 prove <circuit.zkey> <witness.wtns> <proof.json> <public.json>
 by this one
 ````sh
 ./build/prove <circuit.zkey> <witness.wtns> <proof.json> <public.json>
+````
+
+or this one if using Docker
+````sh
+docker run rapidsnark <circuit.zkey> <witness.wtns> <proof.json> <public.json>
 ````
 
 ## Benchmark
