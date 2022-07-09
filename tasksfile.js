@@ -1,4 +1,4 @@
-const { sh, cli } = require("tasksfile");
+const { sh, cli, rawArgs } = require("tasksfile");
 
 function cleanAll() {
     sh("rm -rf build");
@@ -33,7 +33,8 @@ function buildPistche() {
 
 function buildProverServer() {
     sh("cp " + process.argv[3] + " build/circuit.cpp", {cwd: ".", nopipe: true});
-    sh("g++" +
+    sh("g++ " +
+        rawArgs()+
         " -I."+
         " -I../src"+
         " -I../depends/pistache/include"+
@@ -65,7 +66,8 @@ function buildProverServer() {
 
 
 function buildProver() {
-    sh("g++" +
+    sh("g++ " +
+        rawArgs()+
         " -I."+
         " -I../src"+
         " -I../depends/ffiasm/c"+
