@@ -58,7 +58,11 @@ Logger::Logger()
       printf("Logger::Logger() -- Mutex attribute could not initialize!!\n");
       exit(0);
    }
-   ret = pthread_mutexattr_settype(&m_Attr, PTHREAD_MUTEX_ERRORCHECK_NP);
+   #if defined(_linux__)
+     ret = pthread_mutexattr_settype(&m_Attr, PTHREAD_MUTEX_ERRORCHECK_NP);
+   #else
+     ret = pthread_mutexattr_settype(&m_Attr, PTHREAD_MUTEX_ERRORCHECK);
+   #endif
    if(ret != 0)
    {   
       printf("Logger::Logger() -- Mutex attribute could not set type!!\n");
