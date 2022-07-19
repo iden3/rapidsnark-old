@@ -25,7 +25,11 @@ BinFile::BinFile(std::string fileName, std::string _type, uint32_t maxVersion) {
         throw std::system_error(errno, std::generic_category(), "fstat");
 
     size = sb.st_size;
-    void *addrmm = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
+    #if defined(_linux__)
+        void *addrmm = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
+    #else
+        void *addrmm = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    #endif
     addr = malloc(sb.st_size);
     memcpy(addr, addrmm, sb.st_size);
     munmap(addrmm, sb.st_size);
