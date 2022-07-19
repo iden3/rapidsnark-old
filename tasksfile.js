@@ -88,7 +88,7 @@ function buildProver() {
     );
 }
 
-function buildProverForMac() {
+function buildProverMac() {
     sh("g++" +
         " -I."+
         " -I../src"+
@@ -118,5 +118,6 @@ cli({
     createFieldSources,
     buildPistche,
     buildProverServer,
-    buildProver
+    buildProver,
+    buildProverMac,
 });
