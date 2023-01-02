@@ -31,8 +31,6 @@ public :
 
     FrElement getEvaluationCommitment(std::string &key);
 
-    std::string toJsonStr();
-
     json toJson();
 };
 
