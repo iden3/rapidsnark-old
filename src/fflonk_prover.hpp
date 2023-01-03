@@ -11,6 +11,8 @@
 #include "polynomial/polynomial.hpp"
 #include "polynomial/evaluation.hpp"
 #include <nlohmann/json.hpp>
+#include "mul_z.hpp"
+
 using json = nlohmann::json;
 
 namespace Fflonk {
@@ -18,28 +20,37 @@ namespace Fflonk {
     template<typename Engine>
     class FflonkProver {
         using FrElement = typename Engine::FrElement;
-        using FrElements = typename Engine::FrElement[];
         using G1Point = typename Engine::G1Point;
 
         Engine &E;
         FFT<typename Engine::Fr> *fft;
+        MulZ<Engine> *mulZ;
+
+        // To compute in parallel we will precompute all the omegas
+        // We're using Fr.w[zkey,power+2] and Fr.w[zkey,power+4], we'll only compute the last one and
+        // when Fr.w[zkey,power+2] must be used we'll take one out of four.
+        FrElement *omegaBuffer;
+
+        BinFileUtils::BinFile *fdZkey;
+        BinFileUtils::BinFile *fdWtns;
 
         Zkey::FflonkZkeyHeader *zkey;
         u_int32_t zkeyPower;
         std::string curveName;
+        size_t sDomain;
 
         G1Point *PTau;
 
         FrElement *buffWitness;
-        FrElements *buffInternalWitness;
+        FrElement *buffInternalWitness;
 
         std::map<std::string, FrElement[]> buffers;
-        std::map<std::string, Polynomial<Engine>> polynomials;
-        std::map<std::string, Evaluation<Engine>> evaluations;
+        std::map <std::string, Polynomial<Engine>> polynomials;
+        std::map <std::string, Evaluation<Engine>> evaluations;
 
         std::map <std::string, FrElement> toInverse;
         std::map <std::string, FrElement> challenges;
-        FrElements *blindingFactors;
+        FrElement *blindingFactors;
         std::map<std::string, FrElement[]> roots;
 
 
@@ -49,19 +60,39 @@ namespace Fflonk {
 
         ~FflonkProver();
 
-        std::tuple<json, json> prove(BinFileUtils::BinFile *fdZkey, BinFileUtils::BinFile *fdWtns);
+        std::tuple <json, json> prove(BinFileUtils::BinFile *fdZkey, BinFileUtils::BinFile *fdWtns);
 
-        void calculateAdditions(BinFileUtils::BinFile *fdZkey);
+        void calculateAdditions();
 
         FrElement getWitness(u_int64_t idx);
 
         void round1();
+
         void round2();
+
         void round3();
+
         void round4();
+
         void round5();
 
+        //ROUND 1 functions
+        void computeWirePolynomials();
+        void computeWirePolynomial(std::string polName, FrElement blindingFactors[]);
+
+        void computeT0();
+
+        void computeC1();
+
+        //ROUND 2 functions
+        //ROUND 3 functions
+        //ROUND 4 functions
+        //ROUND 5 functions
+
+
         FrElement getMontgomeryBatchedInverse();
+
+        G1Point expTau(const FrElement *polynomial, int64_t from, int64_t count);
     };
 }
 

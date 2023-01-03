@@ -1,24 +1,39 @@
 #include "polynomial.hpp"
 
+
 template<typename Engine>
 void Polynomial<Engine>::initialize(u_int64_t length) {
     E = Engine::engine;
-    this->length = length;
     fft = new FFT<typename Engine::Fr>(length);
-}
 
-template<typename Engine>
-Polynomial<Engine>::Polynomial(u_int64_t length) {
-    initialize(length);
     coef = new FrElement[length];
     memset(coef, 0, sizeof(coef));
+    this->length = length;
     degree = 0;
 }
 
 template<typename Engine>
-Polynomial<Engine>::Polynomial(FrElement coef[], u_int64_t length) {
-    initialize(length);
-    this->coef = coef;
+Polynomial<Engine>::Polynomial(u_int64_t length) {
+    this->initialize(length);
+}
+
+template<typename Engine>
+Polynomial<Engine>::Polynomial(FrElement elements[]) {
+    //TODO checks
+    u_int64_t len = sizeof(*elements) / sizeof(Engine::FrElement);
+    initialize(len);
+    memcpy(coef, elements, sizeof(elements));
+    fixDegree();
+}
+
+template<typename Engine>
+Polynomial<Engine>::Polynomial(FrElement elements[], u_int64_t domainSize, u_int64_t nBlindCoefficients) {
+    //TODO checks
+    initialize(domainSize + nBlindCoefficients);
+    memcpy(coef, elements, sizeof(elements));
+
+    fft->ifft(coef, domainSize);
+
     fixDegree();
 }
 
@@ -34,50 +49,50 @@ void Polynomial<Engine>::fixDegree() {
     this->degree = degree;
 }
 
-//template <typename Engine>
-//static Polynomial<Engine::FrElement> Polynomial<Engine>::fromEvaluations(FrElement (*buffer)[]) {
-//    //fft->fft(polynomial.data(), polynomial.size());
-//}
-/*
-template <typename Engine>
-static Polynomial<FrElement> fromCoefficientsArray(FrElement (*buffer)[]) {
-}
 
-template <typename Engine>
-bool isEqual(const Polynomial& other) const {
+template<typename Engine>
+bool Polynomial<Engine>::isEqual(const Polynomial<Engine> &other) const {
     if (degree != other.degree) {
         return false;
     }
+
     for (int i = 0; i <= degree; i++) {
-        if (coefficients[i] != other.coefficients[i]) {
+        if (E.fr.noeq(coef[i], other.coef[i])) {
             return false;
         }
     }
     return true;
 }
 
-//TODO     blindCoefficients(blindingFactors)
+template<typename Engine>
+void Polynomial<Engine>::blindCoefficients(FrElement blindingFactors[]){
+    u_int64_t lenBlindingFactors = sizeof(*blindingFactors) / sizeof(Engine::FrElement);
 
-template <typename Engine>
-int getCoef(int index) const {
-    if (index < 0 || index > degree) {
-        std::cerr << "Error: invalid index" << std::endl;
-        exit(1);
+    for (int i = 0; i < lenBlindingFactors; i++) {
+        coef[length - lenBlindingFactors + i] = E.fr.add(coef[length - lenBlindingFactors + i], blindingFactors[i]);
+        coef[i] = E.fr.sub(coef[i], blindingFactors[i]);
     }
-    return coefficients[index];
 }
 
 template <typename Engine>
-void setCoef(int index, int value) {
-    if (index < 0 || index > degree) {
-        std::cerr << "Error: invalid index" << std::endl;
-        exit(1);
+typename Engine::FrElement Polynomial<Engine>::getCoef(u_int64_t index) const {
+    if (index > degree) {
+        throw std::runtime_error("Polynomial::getCoef: invalid index");
     }
-    coefficients[index] = value;
+    return coef[index];
 }
+
+template <typename Engine>
+void Polynomial<Engine>::setCoef(u_int64_t index, FrElement value) {
+    if (index > degree) {
+        throw std::runtime_error("Polynomial::getCoef: invalid index");
+    }
+    coef[index] = value;
+}
+
 
 //TODO     static async to4T(buffer, domainSize, blindingFactors, Fr) {
-
+/*
 template <typename Engine>
 int length() const {
     return degree + 1;
@@ -96,19 +111,19 @@ int evaluate(int x) const {
     }
     return result;
 }
-
+*/
 template <typename Engine>
-Polynomial add(const Polynomial& other) const {
-    int newDegree = std::max(degree, other.degree);
+void  Polynomial<Engine>::add(Polynomial<FrElement> &other, FrElement &blindingValue) {
+/*    int newDegree = std::max(degree, other.degree);
     int* newCoefficients = new int[newDegree + 1];
     for (int i = 0; i <= newDegree; i++) {
         newCoefficients[i] = getCoef(i) + other.getCoef(i);
     }
     Polynomial result(newCoefficients, newDegree);
     delete[] newCoefficients;
-    return result;
+    return result;*/
 }
-
+/*
 template <typename Engine>
 Polynomial sub(const Polynomial& other) const {
     int newDegree = std::max(degree, other.degree);
@@ -139,9 +154,13 @@ void subScalar(int scalar) {
 //TODO byXSubValue(value) {
 
 //TODO     divBy(polynomial) {
+*/
 
-//TODO divZh
+template <typename Engine>
+void  Polynomial<Engine>::divZh() {
+}
 
+/*
 //TODO byX
 
 //TODO static lagrangePolynomialInterpolation

@@ -5,6 +5,7 @@
 #include <sstream>
 #include <gmp.h>
 #include "fft.hpp"
+#include "polynomial.hpp"
 
 template<typename Engine>
 class Evaluation {
@@ -21,13 +22,13 @@ public:
 
     Evaluation(u_int64_t length);
 
-    Evaluation(FrElement evaluations[], u_int64_t length);
+    Evaluation(FrElement evaluations[]);
+
+    Evaluation(Polynomial<FrElement> *polynomial);
 
     ~Evaluation();
 
-    //static Evaluation<FrElement> fromPolynomial(Polynomial<FrElement> polynomial);
-
-    //FrElement getEvaluation(unsigned long index);
+    FrElement getEvaluation(u_int64_t index) const;
 
     //unisgned long length();
 };

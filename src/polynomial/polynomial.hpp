@@ -6,6 +6,7 @@
 #include <gmp.h>
 #include "fft.hpp"
 
+
 template<typename Engine>
 class Polynomial {
     using FrElement = typename Engine::FrElement;
@@ -15,6 +16,7 @@ class Polynomial {
     FFT<typename Engine::Fr> *fft;
 
     void initialize(u_int64_t length);
+
 public:
     FrElement *coef;
 
@@ -23,24 +25,24 @@ public:
 
     Polynomial(u_int64_t length);
 
-    Polynomial(FrElement coef[], u_int64_t length);
+    // From coefficients
+    Polynomial(FrElement elements[]);
+
+    // From evaluations
+    Polynomial(FrElement elements[], u_int64_t domainSize, u_int64_t nBlindCoefficients = 0);
 
     ~Polynomial();
 
     void fixDegree();
 
-//    static Polynomial<Engine::FrElement> fromEvaluations(FrElement (*buffer)[]);
+    bool isEqual(const Polynomial<Engine> &other) const;
 
-//    static fromCoefficientsArray(std::vector<FrElement> coefficients);
-//
-//    bool isEqual(Polynomial<FrElement>);
-//
-//    void blindCoefficients(std::vector<FrElement> blindingFactors);
-//
-//    FrElement getCoef(unsigned long index);
-//
-//    void setCoef(unsigned long index, FrElement value);
-//
+    void blindCoefficients(FrElement blindingFactors[]);
+
+    typename Engine::FrElement getCoef(u_int64_t index) const;
+
+    void setCoef(u_int64_t index, FrElement value);
+
 //    static to4T(buffer, domainSize, blindingFactors, Fr); //TODO return dues coses!!!!!!
 //
 //    unsigned long length();
@@ -48,9 +50,9 @@ public:
 //    unsigned long degree();
 //
 //    FrElement evaluate(FrElement x);
-//
-//    void add(Polynomial<FrElement>, FrElement blindingValue);
-//
+
+    void add(Polynomial<FrElement> &other, FrElement &blindingValue);
+
 //    void sub(Polynomial<FrElement>, FrElement blindingValue);
 //
 //    void mulScalar(FrElement value);
@@ -67,9 +69,9 @@ public:
 //
 //    // Divide polynomial by X - value
 //    void divByXSubValue(FrElement value);
-//
-//    void divZh();
-//
+
+    void divZh();
+
 //    void byX();
 //
 //    // Compute a new polynomial f(x^n) from f(x)
