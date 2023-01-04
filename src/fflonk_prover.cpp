@@ -823,7 +823,37 @@ namespace Fflonk {
 
     template<typename Engine>
     void FflonkProver<Engine>::computeC2() {
+        LOG_TRACE("··· Computing C2");
 
+        // C2(X) := z(X^3) + X · T1(X^3) + X^2 · T2(X^3)
+        // Get X^n · f(X) by shifting the f(x) coefficients n positions,
+        // the resulting polynomial will be degree deg(f(X)) + n
+        u_int64_t lengthZ = polynomials["Z"]->length;
+        u_int64_t lengthT1 = polynomials["T1"]->length;
+        u_int64_t lengthT2 = polynomials["T2"]->length;
+        // Compute degree of the new polynomial C2(X) to reserve the buffer memory size
+        // Will be the maximum(deg(Z_3), deg(T1_3)+1, deg(T2_3)+2)
+        u_int64_t degreeZ = polynomials["Z"]->degree;
+        u_int64_t degreeT1 = polynomials["T1"]->degree;
+        u_int64_t degreeT2 = polynomials["T2"]->degree;
+
+        u_int64_t maxLength = std::max(lengthZ, std::max(lengthT1, lengthT2));
+        u_int64_t maxDegree = std::max(degreeZ * 3 + 1, std::max(degreeT1 * 3 + 2, degreeT2 * 3 + 3));
+
+        u_int64_t lengthBuffer = 2 ** (fft->log2(maxDegree - 1) + 1);
+
+        polynomials["C2"] = new Polynomial<Engine>(lengthBuffer);
+
+        for (u_int64_t i = 0; i < maxLength; i++) {
+            polynomials["C2"].coef[i * 4] = polynomials["Z"]->getCoef(i);
+            polynomials["C2"].coef[i * 4 + 1] = polynomials["T1"]->getCoef(i);
+            polynomials["C2"].coef[i * 4 + 2] = polynomials["T2"]->getCoef(i);
+        }
+
+        // Check degree
+        if (polynomials["C2"]->degree >= 9 * zkey->domainSize + 18) {
+            throw std::runtime_error("C2 Polynomial is not well calculated");
+        }
     }
 
     //// ROUND 3
