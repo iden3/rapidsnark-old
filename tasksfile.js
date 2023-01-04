@@ -71,9 +71,16 @@ function buildProver() {
         " -I../depends/ffiasm/c"+
         " -I../depends/json/single_include"+
         " ../src/main_prover.cpp"+
+        " ../src/fflonk_prover.cpp"+
         " ../src/binfile_utils.cpp"+
         " ../src/zkey_utils.cpp"+
+        " ../src/zkey_fflonk.cpp"+
         " ../src/wtns_utils.cpp"+
+        " ../src/mul_z.cpp"+
+        " ../src/snark_proof.cpp"+
+        " ../src/polynomial/polynomial.cpp"+
+        " ../src/polynomial/evaluation.cpp"+
+        " ../src/dump.cpp"+
         " ../src/logger.cpp"+
         " ../depends/ffiasm/c/misc.cpp"+
         " ../depends/ffiasm/c/naf.cpp"+
@@ -88,11 +95,43 @@ function buildProver() {
     );
 }
 
+function compile() {
+    sh("g++ -c" +
+        " -I."+
+        " -I../src"+
+        " -I/opt/homebrew/Cellar/gmp/6.2.1_1/include/"+
+        " -I/opt/homebrew/opt/libomp/include"+
+        " -I/opt/homebrew/Cellar/libsodium/1.0.18_1/include"+
+        " -I../depends/ffiasm/c"+
+        " -I../depends/json/single_include"+
+        " ../src/main_prover.cpp"+
+        " ../src/fflonk_prover.cpp"+
+        " ../src/binfile_utils.cpp"+
+        " ../src/zkey_utils.cpp"+
+        " ../src/zkey_fflonk.cpp"+
+        " ../src/wtns_utils.cpp"+
+        " ../src/mul_z.cpp"+
+        " ../src/snark_proof.cpp"+
+        " ../src/polynomial/polynomial.cpp"+
+        " ../src/polynomial/evaluation.cpp"+
+        " ../src/dump.cpp"+
+        " ../src/logger.cpp"+
+        " ../depends/ffiasm/c/misc.cpp"+
+        " ../depends/ffiasm/c/naf.cpp"+
+        " ../depends/ffiasm/c/splitparstr.cpp"+
+        " ../depends/ffiasm/c/alt_bn128.cpp"+
+        " fq.cpp"+
+        " fr.cpp"+
+//        " -Wall -Wno-sign-compare"+
+        " -fmax-errors=20 -std=c++17 -pthread -lgmp -lsodium -O3 -lssl -lcrypto", {cwd: "build", nopipe: true}
+    );
+}
 
 cli({
     cleanAll,
     createFieldSources,
     buildPistche,
     buildProverServer,
-    buildProver
-});
+    buildProver,
+    compile
+})
