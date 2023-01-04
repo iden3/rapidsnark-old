@@ -7,6 +7,7 @@
 #include "wtns_utils.hpp"
 #include <sodium.h>
 #include "mul_z.hpp"
+#include "keccak_256_transcript.hpp"
 
 using namespace CPlusPlusLogging;
 
@@ -511,29 +512,79 @@ namespace Fflonk {
         u_int64_t maxLength = std::max(lengthA, std::max(lengthB, std::max(lengthC, lengthT0)));
         u_int64_t maxDegree = std::max(degreeA * 4 + 1, std::max(degreeB * 4 + 2, std::max(degreeC * 4 + 3, degreeT0 * 4 + 3)));
 
-//        const lengthBuffer = 2 ** (log2(maxDegree - 1) + 1);
-//
-//        polynomials.C1 = new Polynomial(new BigBuffer(lengthBuffer * sFr, Fr, logger), Fr, logger);
-//
-//        for (let i = 0; i < maxLength; i++) {
-//            const i_sFr = i * sFr * 4;
-//
-//            polynomials.C1.coef.set(polynomials.A.getCoef(i), i_sFr);
-//            polynomials.C1.coef.set(polynomials.B.getCoef(i), i_sFr + 32);
-//            polynomials.C1.coef.set(polynomials.C.getCoef(i), i_sFr + 64);
-//            polynomials.C1.coef.set(polynomials.T0.getCoef(i), i_sFr + 96);
-//        }
-//
-//        // Check degree
-//        if (polynomials.C1.degree() >= 8 * zkey.domainSize + 8) {
-//            throw new Error("C1 Polynomial is not well calculated");
-//        }
+        u_int64_t lengthBuffer = 2 ** (fft->log2(maxDegree - 1) + 1);
+
+        polynomials["C1"] = new Polynomial<Engine>(lengthBuffer);
+
+        for (u_int64_t i = 0; i < maxLength; i++) {
+            polynomials["C1"].coef[i * 4] = polynomials["A"]->getCoef(i);
+            polynomials["C1"].coef[i * 4 + 1] = polynomials["B"]->getCoef(i);
+            polynomials["C1"].coef[i * 4 + 2] = polynomials["C"]->getCoef(i);
+            polynomials["C1"].coef[i * 4 + 3] = polynomials["T0"]->getCoef(i);
+        }
+
+        // Check degree
+        if (polynomials["C1"]->degree >= 8 * zkey->domainSize + 8) {
+            throw std::runtime_error("C1 Polynomial is not well calculated");
+        }
     }
 
 
     //// ROUND 2
     template<typename Engine>
     void FflonkProver<Engine>::round2() {
+        // STEP 2.1 - Compute permutation challenge beta and gamma ∈ F
+        // Compute permutation challenge beta
+        Keccak256Transcript transcript = new Keccak256Transcript<Engine>();
+        for (u_int32_t i = 0; i < zkey->nPublic; i++) {
+            transcript.addScalar(buffers["A"][i]);
+        }
+        transcript.addPolCommitment(proof.getPolynomial("C1"));
+
+        challenges["beta"] = transcript.getChallenge();
+        std::ostringstream ss;
+        ss << "challenges.beta: " << E.Fr.toString(challenges["beta"]);
+        LOG_TRACE(ss);
+
+        // Compute permutation challenge gamma
+        transcript.reset();
+        transcript.addScalar(challenges["beta"]);
+        challenges["gamma"] = transcript.getChallenge();
+        std::ostringstream ss;
+        ss << "challenges.gamma: " << E.Fr.toString(challenges["gamma"]);
+
+        // STEP 2.2 - Compute permutation polynomial z(X)
+        computeZ();
+
+        // STEP 2.3 - Compute quotient polynomial T1(X) and T2(X)
+        computeT1();
+        computeT2();
+
+        // STEP 2.4 - Compute the FFT-style combination polynomial C2(X)
+        computeC2();
+
+        // The second output of the prover is ([C2]_1)
+        proof.addPolynomial("C2", multiExponentiation(polynomials["C2"], "C2"));
+    }
+
+    template<typename Engine>
+    void FflonkProver<Engine>::computeZ() {
+
+    }
+
+    template<typename Engine>
+    void FflonkProver<Engine>::computeT1() {
+
+    }
+
+    template<typename Engine>
+    void FflonkProver<Engine>::computeT2() {
+
+    }
+
+    template<typename Engine>
+    void FflonkProver<Engine>::computeC2() {
+
     }
 
     //// ROUND 3

@@ -78,6 +78,7 @@ namespace Fflonk {
 
         //ROUND 1 functions
         void computeWirePolynomials();
+
         void computeWirePolynomial(std::string polName, FrElement blindingFactors[]);
 
         void computeT0();
@@ -85,6 +86,14 @@ namespace Fflonk {
         void computeC1();
 
         //ROUND 2 functions
+        void computeZ();
+
+        void computeT1();
+
+        void computeT2();
+
+        void computeC2();
+
         //ROUND 3 functions
         //ROUND 4 functions
         //ROUND 5 functions
