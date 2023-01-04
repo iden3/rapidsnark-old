@@ -859,6 +859,85 @@ namespace Fflonk {
     //// ROUND 3
     template<typename Engine>
     void FflonkProver<Engine>::round3() {
+        // STEP 3.1 - Compute evaluation challenge xi ∈ S
+        Keccak256Transcript transcript = new Keccak256Transcript<Engine>();
+        transcript.addPolCommitment(proof.getPolynomial("C2"));
+
+        // Obtain a xi_seeder from the transcript
+        // To force h1^4 = xi, h2^3 = xi and h_3^2 = xiω
+        // we compute xi = xi_seeder^12, h1 = xi_seeder^3, h2 = xi_seeder^4 and h3 = xi_seeder^6
+        FrElement xiSeed = transcript.getChallenge();
+        FrElement xiSeed2 = E.Fr.square(xiSeed);
+
+        // Compute omega3 and omega4
+        roots["w4"] = new FrElement[4];
+        roots["w4"][0] = E.Fr.one;
+        roots["w4"][1] = zkey->w4;
+        roots["w4"][2] = E.Fr.square(zkey->w4);
+        roots["w4"][3] = E.Fr.mul(roots["w4"][2], zkey->w4);
+
+        roots["w3"] = new FrElement[3];
+        roots["w3"][0] = E.Fr.one;
+        roots["w3"][1] = zkey->w3;
+        roots["w3"][2] = E.Fr.square(zkey->w3);
+
+        // Compute h1 = xi_seeder^3
+        roots["S1h1"] = new FrElement[4];
+        roots["S1h1"][0] = E.Fr.mul(xiSeed2, xiSeed);
+        roots["S1h1"][1] = E.Fr.mul(roots["S1h1"][0], roots["w4"][1]);
+        roots["S1h1"][2] = E.Fr.mul(roots["S1h1"][0], roots["w4"][2]);
+        roots["S1h1"][3] = E.Fr.mul(roots["S1h1"][0], roots["w4"][3]);
+
+        roots["S2h2"] = new FrElement[3];
+        roots["S2h2"][0] = E.Fr.square(xiSeed2);
+        roots["S2h2"][1] = E.Fr.mul(roots["S2h2"][0], roots["w3"][1]);
+        roots["S2h2"][2] = E.Fr.mul(roots["S2h2"][0], roots["w3"][2]);
+
+        roots["S2h3"] = new FrElement[3];
+        // Multiply h3 by third-root-omega to obtain h_3^3 = xiω
+        roots["S2h3"][0] = E.Fr.mul(roots["S2h2"][0], zkey->wr);
+        roots["S2h3"][1] = E.Fr.mul(roots["S2h3"][0], roots["w3"][1]);
+        roots["S2h3"][2] = E.Fr.mul(roots["S2h3"][0], roots["w3"][2]);
+
+        // Compute xi = xi_seeder^12
+        challenges.xi = E.Fr.mul(E.Fr.square(roots["S2h2"][0]), roots["S2h2"][0]);
+
+        std::ostringstream ss;
+        ss << "challenges.xi: " << E.Fr.toString(challenges["xi"]);
+        LOG_TRACE(ss);
+
+        // Reserve memory for Q's polynomials
+        polynomials["QL"] = new Polynomial<Engine>(zkey->domainSize);
+        polynomials["QR"] = new Polynomial<Engine>(zkey->domainSize);
+        polynomials["QM"] = new Polynomial<Engine>(zkey->domainSize);
+        polynomials["QO"] = new Polynomial<Engine>(zkey->domainSize);
+        polynomials["QC"] = new Polynomial<Engine>(zkey->domainSize);
+
+        // Read Q's evaluations from zkey file
+        memcpy(polynomials["QL"].coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION), sDomain);
+        memcpy(polynomials["QR"].coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION), sDomain);
+        memcpy(polynomials["QM"].coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION), sDomain);
+        memcpy(polynomials["QO"].coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION), sDomain);
+        memcpy(polynomials["QC"].coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION), sDomain);
+
+        // STEP 3.2 - Compute opening evaluations and add them to the proof (third output of the prover)
+        proof->addEvaluationCommitment("ql", polynomials["QL"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("qr", polynomials["QR"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("qm", polynomials["QM"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("qo", polynomials["QO"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("qc", polynomials["QC"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("s1", polynomials["Sigma1"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("s2", polynomials["Sigma2"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("s3", polynomials["Sigma3"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("a", polynomials["A"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("b", polynomials["B"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("c", polynomials["C"]->evaluate(challenges["xi"]));
+        proof->addEvaluationCommitment("z", polynomials["Z"]->evaluate(challenges["xi"]));
+
+        FrElement xiw = E.Fr.mul(challenges["xi"], fft->root(zkeyPower + 4, 1));
+        proof->addEvaluationCommitment("zw", polynomials["Z"]->evaluate(challenges["xiw"]));
+        proof->addEvaluationCommitment("t1w", polynomials["T1"]->evaluate(challenges["xiw"]));
+        proof->addEvaluationCommitment("t2w", polynomials["T2"]->evaluate(challenges["xiw"]));
     }
 
     //// ROUND 4
