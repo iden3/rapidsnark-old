@@ -9,7 +9,7 @@
 #include "fft.hpp"
 #include "zkey_fflonk.hpp"
 #include "polynomial/polynomial.hpp"
-#include "polynomial/evaluation.hpp"
+#include "polynomial/evaluations.hpp"
 #include <nlohmann/json.hpp>
 #include "mul_z.hpp"
 
@@ -46,7 +46,7 @@ namespace Fflonk {
 
         std::map<std::string, FrElement[]> buffers;
         std::map <std::string, Polynomial<Engine>> polynomials;
-        std::map <std::string, Evaluation<Engine>> evaluations;
+        std::map <std::string, Evaluations<Engine>> evaluations;
 
         std::map <std::string, FrElement> toInverse;
         std::map <std::string, FrElement> challenges;
@@ -94,10 +94,19 @@ namespace Fflonk {
 
         void computeC2();
 
-        //ROUND 3 functions
         //ROUND 4 functions
-        //ROUND 5 functions
+        void computeR1();
 
+        void computeR2();
+
+        void computeF();
+
+        void computeZT();
+
+        //ROUND 5 functions
+        void computeL();
+
+        void computeZTS2();
 
         FrElement getMontgomeryBatchedInverse();
 

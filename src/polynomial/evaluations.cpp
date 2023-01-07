@@ -1,8 +1,8 @@
-#include "evaluation.hpp"
+#include "evaluations.hpp"
 
 
 template<typename Engine>
-void Evaluation<Engine>::initialize(u_int64_t length) {
+void Evaluations<Engine>::initialize(u_int64_t length) {
     E = Engine::engine;
     fft = new FFT<typename Engine::Fr>(length);
 
@@ -12,12 +12,12 @@ void Evaluation<Engine>::initialize(u_int64_t length) {
 }
 
 template<typename Engine>
-Evaluation<Engine>::Evaluation(u_int64_t length) {
+Evaluations<Engine>::Evaluations(u_int64_t length) {
     this->initialize(length);
 }
 
 template<typename Engine>
-Evaluation<Engine>::Evaluation(FrElement evaluations[]) {
+Evaluations<Engine>::Evaluations(FrElement evaluations[]) {
     u_int64_t len = sizeof(*evaluations) / sizeof(Engine::FrElement);
     initialize(len);
 
@@ -25,7 +25,7 @@ Evaluation<Engine>::Evaluation(FrElement evaluations[]) {
 }
 
 template<typename Engine>
-Evaluation<Engine>::Evaluation(Polynomial<FrElement> *polynomial) {
+Evaluations<Engine>::Evaluations(Polynomial<FrElement> *polynomial) {
     u_int64_t extendedLength = polynomial->length * 4;
 
     //Extend polynomial
@@ -41,14 +41,19 @@ Evaluation<Engine>::Evaluation(Polynomial<FrElement> *polynomial) {
 }
 
 template<typename Engine>
-Evaluation<Engine>::~Evaluation() {
+Evaluations<Engine>::~Evaluations() {
     delete[] this->eval;
 }
 
 template<typename Engine>
-typename Engine::FrElement Evaluation<Engine>::getEvaluation(u_int64_t index) const {
+typename Engine::FrElement Evaluations<Engine>::getEvaluation(u_int64_t index) const {
     if (index > length - 1) {
         throw std::runtime_error("Evaluations::getEvaluation: invalid index");
     }
     return eval[index];
+}
+
+template<typename Engine>
+u_int64_t Evaluations<Engine>::getLength() const {
+    return length;
 }

@@ -12,16 +12,17 @@ class Polynomial {
     using FrElement = typename Engine::FrElement;
     using G1Point = typename Engine::G1Point;
 
+    u_int64_t length;
+    u_int64_t degree;
+
     Engine &E;
     FFT<typename Engine::Fr> *fft;
 
     void initialize(u_int64_t length);
 
+    static Polynomial<Engine> computeLagrangePolynomial(u_int64_t i, Polynomial<Engine> &pol, FrElement xArr[], FrElement yArr[]);
 public:
     FrElement *coef;
-
-    u_int64_t length;
-    u_int64_t degree;
 
     Polynomial(u_int64_t length);
 
@@ -44,50 +45,38 @@ public:
     void setCoef(u_int64_t index, FrElement value);
 
 //    static to4T(buffer, domainSize, blindingFactors, Fr); //TODO return dues coses!!!!!!
-//
-//    unsigned long length();
-//
-//    unsigned long degree();
-//
-//    FrElement evaluate(FrElement x);
 
-    void add(Polynomial<FrElement> &other, FrElement &blindingValue);
+    u_int64_t getLength() const;
 
-//    void sub(Polynomial<FrElement>, FrElement blindingValue);
-//
-//    void mulScalar(FrElement value);
-//
-//    void addScalar(FrElement value);
-//
-//    void subScalar(FrElement value);
-//
-//    // Multiply current polynomial by the polynomial (X - value)
-//    void byXSubValue(FrElement value);
-//
-//    // Euclidean division
-//    void divBy(Polynomial<FrElement> polynomial);
-//
-//    // Divide polynomial by X - value
-//    void divByXSubValue(FrElement value);
+    u_int64_t getDegree() const;
 
-    void divZh();
+    typename Engine::FrElement evaluate(FrElement point) const;
 
-//    void byX();
-//
-//    // Compute a new polynomial f(x^n) from f(x)
-//    // f(x)   = a_0 + a_1·x + a_2·x^2 + ... + a_j·x^j
-//    // f(x^n) = a_0 + a_1·x^n + a_2·x^2n + ... + a_j·x^jn
-//    static expX(Polynomial<FrElement> polynomial, unsigned long n, bool truncate = false);
-//
-//    std::vector<Polynomial<FrElement>> split(unsigned int numPols, unsigned long degPols, std::vector<FrElement> blindingFactors);
-//
-//    void truncate();
-//
-//    static lagrangePolynomialInterpolation(std::vector<FrElement> xArr, std::vector<FrElement> yArr);
-//
-//    static zerofierPolynomial(std::vector<FrElement> xArr);
-//
-//    void print();
+    void add(Polynomial<FrElement> &polynomial);
+
+    void sub(Polynomial<FrElement> &polynomial);
+
+    void mulScalar(FrElement &value);
+
+    void addScalar(FrElement &value);
+
+    void subScalar(FrElement &value);
+
+    // Multiply current polynomial by the polynomial (X - value)
+    void byXSubValue(FrElement &value);
+
+    // Euclidean division
+    Polynomial<Engine> divBy(Polynomial<Engine> &polynomial);
+
+    void divZh(u_int64_t domainSize);
+
+    void byX();
+
+    static Polynomial<Engine> lagrangePolynomialInterpolation(Polynomial<Engine> &pol, FrElement xArr[], FrElement yArr[]);
+
+    static Polynomial<Engine> zerofierPolynomial(FrElement xArr[]);
+
+    void print();
 };
 
-#endif //POLYNOMIAL_HPP
+#endif

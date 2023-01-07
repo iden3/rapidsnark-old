@@ -1,5 +1,5 @@
-#ifndef EVALUATION_HPP
-#define EVALUATION_HPP
+#ifndef EVALUATIONS_HPP
+#define EVALUATIONS_HPP
 
 #include "assert.h"
 #include <sstream>
@@ -8,30 +8,30 @@
 #include "polynomial.hpp"
 
 template<typename Engine>
-class Evaluation {
+class Evaluations {
     using FrElement = typename Engine::FrElement;
+
+    u_int64_t length;
 
     Engine &E;
     FFT<typename Engine::Fr> *fft;
 
     void initialize(u_int64_t length);
+
 public:
     FrElement *eval;
 
-    u_int64_t length;
+    Evaluations(u_int64_t length);
 
-    Evaluation(u_int64_t length);
+    Evaluations(FrElement evaluations[]);
 
-    Evaluation(FrElement evaluations[]);
+    Evaluations(Polynomial<FrElement> *polynomial);
 
-    Evaluation(Polynomial<FrElement> *polynomial);
-
-    ~Evaluation();
+    ~Evaluations();
 
     FrElement getEvaluation(u_int64_t index) const;
 
-    //unisgned long length();
+    u_int64_t getLength() const;
 };
 
-
-#endif //EVALUATION_HPP
+#endif
