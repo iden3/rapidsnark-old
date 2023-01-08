@@ -125,8 +125,8 @@ function compile() {
         " ../depends/ffiasm/c/alt_bn128.cpp"+
         " fq.cpp"+
         " fr.cpp"+
-        " -Wall -Wno-sign-compare"+
-        " -fmax-errors=20 -std=c++17 -pthread -lgmp -lsodium -O3 -lssl -lcrypto -fopenmp", {cwd: "build", nopipe: true}
+//        " -Wall -Wno-sign-compare"+
+        " -fmax-errors=5 -std=c++17 -pthread -lgmp -lsodium -O3 -lssl -lcrypto -fopenmp", {cwd: "build", nopipe: true}
     );
 }
 

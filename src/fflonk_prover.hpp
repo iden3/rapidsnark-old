@@ -22,7 +22,7 @@ namespace Fflonk {
         using FrElement = typename Engine::FrElement;
         using G1Point = typename Engine::G1Point;
 
-        Engine* E;
+        Engine E;
         FFT<typename Engine::Fr> *fft;
         MulZ<Engine> *mulZ;
 
