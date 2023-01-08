@@ -15,7 +15,7 @@ namespace Fflonk {
 
     template<typename Engine>
     FflonkProver<Engine>::FflonkProver() {
-        E = Engine::engine;
+        E = &Engine::engine;
         curveName = CurveUtils::getCurveNameByEngine(this->E);
     }
 

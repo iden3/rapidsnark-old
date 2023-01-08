@@ -48,7 +48,7 @@ namespace Zkey {
 
         ~FflonkZkeyHeader();
 
-        static std::unique_ptr<FflonkZkeyHeader> loadFflonkZkeyHeader(BinFileUtils::BinFile *f);
+        static FflonkZkeyHeader* loadFflonkZkeyHeader(BinFileUtils::BinFile *f);
     };
 }
 
