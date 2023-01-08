@@ -13,7 +13,7 @@ namespace Zkey {
         mpz_clear(rPrime);
     }
 
-    static std::unique_ptr<FflonkZkeyHeader> loadfflonkZkeyHeader(BinFileUtils::BinFile *f) {
+    std::unique_ptr<FflonkZkeyHeader> loadFflonkZkeyHeader(BinFileUtils::BinFile *f) {
         auto fflonkZkeyHeader = new FflonkZkeyHeader();
 
         f->startReadSection(Zkey::ZKEY_FF_HEADER_SECTION);

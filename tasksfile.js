@@ -74,6 +74,7 @@ function buildProver() {
         " ../src/fflonk_prover.cpp"+
         " ../src/binfile_utils.cpp"+
         " ../src/zkey_utils.cpp"+
+        " ../src/zkey.cpp"+
         " ../src/zkey_fflonk.cpp"+
         " ../src/wtns_utils.cpp"+
         " ../src/mul_z.cpp"+
@@ -109,6 +110,7 @@ function compile() {
         " ../src/fflonk_prover.cpp"+
         " ../src/binfile_utils.cpp"+
         " ../src/zkey_utils.cpp"+
+        " ../src/zkey.cpp"+
         " ../src/zkey_fflonk.cpp"+
         " ../src/wtns_utils.cpp"+
         " ../src/mul_z.cpp"+
@@ -124,8 +126,8 @@ function compile() {
         " ../depends/ffiasm/c/alt_bn128.cpp"+
         " fq.cpp"+
         " fr.cpp"+
-//        " -Wall -Wno-sign-compare"+
-        " -fmax-errors=20 -std=c++17 -pthread -lgmp -lsodium -O3 -lssl -lcrypto", {cwd: "build", nopipe: true}
+        " -Wall -Wno-sign-compare"+
+        " -fmax-errors=20 -std=c++17 -pthread -lgmp -lsodium -O3 -lssl -lcrypto -fopenmp", {cwd: "build", nopipe: true}
     );
 }
 
