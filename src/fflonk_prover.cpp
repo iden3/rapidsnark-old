@@ -1,4 +1,4 @@
-#include "fflonk_prover.hpp"
+//#include "fflonk_prover.hpp"
 
 #include "logger.hpp"
 #include "curve_utils.hpp"

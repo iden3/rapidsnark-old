@@ -114,4 +114,6 @@ namespace Fflonk {
     };
 }
 
+#include "fflonk_prover.cpp"
+
 #endif

@@ -71,7 +71,6 @@ function buildProver() {
         " -I../depends/ffiasm/c"+
         " -I../depends/json/single_include"+
         " ../src/main_prover.cpp"+
-        " ../src/fflonk_prover.cpp"+
         " ../src/binfile_utils.cpp"+
         " ../src/zkey_utils.cpp"+
         " ../src/zkey.cpp"+
