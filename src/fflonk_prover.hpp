@@ -22,7 +22,7 @@ namespace Fflonk {
         using FrElement = typename Engine::FrElement;
         using G1Point = typename Engine::G1Point;
 
-        Engine E;
+        Engine &E;
         FFT<typename Engine::Fr> *fft;
         MulZ<Engine> *mulZ;
 
@@ -45,24 +45,24 @@ namespace Fflonk {
         FrElement *buffInternalWitness;
 
         std::map<std::string, FrElement[]> buffers;
-        std::map <std::string, Polynomial<Engine>> polynomials;
-        std::map <std::string, Evaluations<Engine>> evaluations;
+        std::map <std::string, Polynomial<Engine>*> polynomials;
+        std::map <std::string, Evaluations<Engine>*> evaluations;
 
         std::map <std::string, FrElement> toInverse;
         std::map <std::string, FrElement> challenges;
-        FrElement *blindingFactors;
         std::map<std::string, FrElement[]> roots;
+        FrElement blindingFactors[10];
 
 
         SnarkProof<Engine> *proof;
     public:
-        FflonkProver();
+        FflonkProver(Engine &E);
 
         ~FflonkProver();
 
         std::tuple <json, json> prove(BinFileUtils::BinFile *fdZkey, BinFileUtils::BinFile *fdWtns);
 
-        void calculateAdditions();
+        void calculateAdditions(BinFileUtils::BinFile *fdZkey);
 
         FrElement getWitness(u_int64_t idx);
 

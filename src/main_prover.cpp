@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
         if (Zkey::FFLONK_PROTOCOL_ID == protocolId) {
 
-            Fflonk::FflonkProver<AltBn128::Engine> *prover = new Fflonk::FflonkProver<AltBn128::Engine>();
+            auto prover = Fflonk::makeProver<AltBn128::Engine>();
             auto [proofJson, publicSignalsJson] = prover->prove(zkey.get(), wtns.get());
 
             std::ofstream file;

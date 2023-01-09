@@ -1,4 +1,4 @@
-//#include "fflonk_prover.hpp"
+#include "fflonk_prover.hpp"
 
 #include "logger.hpp"
 #include "curve_utils.hpp"
@@ -13,9 +13,14 @@ using namespace CPlusPlusLogging;
 
 namespace Fflonk {
 
+    template <typename Engine>
+    FflonkProver<Engine>* makeProver() {
+        return new FflonkProver<Engine>(Engine::engine);
+    }
+
     template<typename Engine>
-    FflonkProver<Engine>::FflonkProver() {
-        E = &Engine::engine;
+    FflonkProver<Engine>::FflonkProver(Engine &_E) {
+        this->E = _E;
         curveName = CurveUtils::getCurveNameByEngine();
     }
 
@@ -51,9 +56,9 @@ namespace Fflonk {
             LOG_TRACE("> Computing omegaBuffer");
             omegaBuffer = new FrElement[zkey->domainSize * 16];
             FrElement omega = fft->root(zkeyPower + 4, 1);
-            omegaBuffer[0] = E.fr.one;
+            omegaBuffer[0] = E.fr.one();
             for (int64_t i = 1; i < zkey->domainSize * 16; ++i) {
-                omegaBuffer[i] = E.fr.mul(omegaBuffer[i - 1], omega);
+                E.fr.mul(omegaBuffer[i], omegaBuffer[i - 1], omega);
             }
 
             //TODO compare zkey field with wtns field
@@ -98,12 +103,12 @@ namespace Fflonk {
 
             buffInternalWitness = new FrElement[zkey->nAdditions];
 
-            buffers = new std::map<string, FrElement[]>;
-            polynomials = new std::map<std::string, Polynomial<Engine>>;
-            evaluations = new std::map<std::string, Evaluations<Engine>>;
-            toInverse = new std::map<std::string, FrElement>;
-            challenges = new std::map<std::string, FrElement>;
-            roots = new std::map<std::string, FrElement[]>;
+//            buffers = new std::map<string, FrElement[]>;
+//            polynomials = new std::map<std::string, Polynomial<Engine>>;
+//            evaluations = new std::map<std::string, Evaluations<Engine>>;
+//            toInverse = new std::map<std::string, FrElement>;
+//            challenges = new std::map<std::string, FrElement>;
+//            roots = new std::map<std::string, FrElement[]>;
 
             // To divide prime fields the Extended Euclidean Algorithm for computing modular inverses is needed.
             // NOTE: This is the equivalent of compute 1/denominator and then multiply it by the numerator.
@@ -139,18 +144,18 @@ namespace Fflonk {
             polynomials["Sigma2"] = new Polynomial<Engine>(zkey->domainSize);
             polynomials["Sigma3"] = new Polynomial<Engine>(zkey->domainSize);
 
-            memcpy(polynomials["Sigma1"].coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION), sDomain);
-            memcpy(polynomials["Sigma2"].coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION), sDomain);
-            memcpy(polynomials["Sigma3"].coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION), sDomain);
+            memcpy(polynomials["Sigma1"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION), sDomain);
+            memcpy(polynomials["Sigma2"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION), sDomain);
+            memcpy(polynomials["Sigma3"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION), sDomain);
 
             LOG_TRACE("··· Reading Sigma evaluations ");
             evaluations["Sigma1"] = new Evaluations<Engine>(zkey->domainSize);
             evaluations["Sigma2"] = new Evaluations<Engine>(zkey->domainSize);
             evaluations["Sigma3"] = new Evaluations<Engine>(zkey->domainSize);
 
-            memcpy(evaluations["Sigma1"].eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION) + sDomain, sDomain * 4);
-            memcpy(evaluations["Sigma2"].eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION) + sDomain, sDomain * 4);
-            memcpy(evaluations["Sigma3"].eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION) + sDomain, sDomain * 4);
+            memcpy(evaluations["Sigma1"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION) + sDomain, sDomain * 4);
+            memcpy(evaluations["Sigma2"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION) + sDomain, sDomain * 4);
+            memcpy(evaluations["Sigma3"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION) + sDomain, sDomain * 4);
 
             ss << "> Reading Section " << Zkey::ZKEY_FF_PTAU_SECTION << ". Powers of Tau\n";
             LOG_TRACE(ss);
@@ -230,12 +235,12 @@ namespace Fflonk {
             delete polynomials["ZT"];
             delete polynomials["ZTS2"];
 
-            proof.addEvaluation("inv", getMontgomeryBatchedInverse());
+//            proof->addEvaluationCommitment("inv", getMontgomeryBatchedInverse());
 
             // Prepare public inputs
             json publicSignals;
             for (u_int32_t i = 1; i <= zkey->nPublic; i++) {
-                publicSignals.push_back(E.Fr.toString(E.Fr.toMontgomery(buffWitness[i])));
+                publicSignals.push_back(E.Fr.toString(E.Fr.toMontgomery(buffWitness[i])).c_str());
             }
 
             delete fdWtns;
@@ -251,7 +256,7 @@ namespace Fflonk {
     }
 
     template<typename Engine>
-    void FflonkProver<Engine>::calculateAdditions() {
+    void FflonkProver<Engine>::calculateAdditions(BinFileUtils::BinFile *fdZkey) {
         Zkey::Addition<Engine> *additionsBuff = fdZkey->getSectionData(Zkey::ZKEY_FF_ADDITIONS_SECTION);
 
         for (u_int32_t i = 0; i < zkey->nAdditions; i++) {
@@ -282,7 +287,7 @@ namespace Fflonk {
     template<typename Engine>
     void FflonkProver<Engine>::round1() {
         // STEP 1.1 - Generate random blinding scalars (b_1, ..., b9) ∈ F
-        blindingFactors = new FrElement[10];
+//        blindingFactors = new FrElement[10];
 
         //0 index not used, set to zero
         //TODO check it fill all bytes with random values!!!!
@@ -1215,7 +1220,7 @@ namespace Fflonk {
     //TODO !!!!!!!!!!
     template<typename Engine>
     typename Engine::FrElement FflonkProver<Engine>::getMontgomeryBatchedInverse() {
-        return E.fr.zero;
+        return E.fr.zero();
     }
 
     template<typename Engine>

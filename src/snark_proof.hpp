@@ -19,17 +19,17 @@ class SnarkProof {
     std::map <std::string, G1PointAffine> polynomialCommitments;
     std::map <std::string, FrElement> evaluationCommitments;
 public :
-    SnarkProof(const std::string protocol);
+    SnarkProof(const std::string &protocol);
 
     void resetProof();
 
-    void addPolynomialCommitment(std::string &key, G1PointAffine &polynomialCommitment);
+    void addPolynomialCommitment(const std::string &key, G1PointAffine &polynomialCommitment);
 
-    G1PointAffine getPolynomialCommitment(std::string &key);
+    G1PointAffine getPolynomialCommitment(const std::string &key);
 
-    void addEvaluationCommitment(std::string &key, FrElement &evaluationCommitment);
+    void addEvaluationCommitment(const std::string &key, FrElement &evaluationCommitment);
 
-    FrElement getEvaluationCommitment(std::string &key);
+    FrElement getEvaluationCommitment(const std::string &key);
 
     json toJson();
 };

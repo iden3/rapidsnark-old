@@ -7,7 +7,7 @@
 using namespace CPlusPlusLogging;
 
 template<typename Engine>
-SnarkProof<Engine>::SnarkProof(const std::string protocol) {
+SnarkProof<Engine>::SnarkProof(const std::string &protocol) {
     this->E = Engine::engine;
     this->protocol = protocol;
     this->curve = CurveUtils::getCurveNameByEngine(this->E);
@@ -22,7 +22,7 @@ void SnarkProof<Engine>::resetProof() {
 }
 
 template<typename Engine>
-void SnarkProof<Engine>::addPolynomialCommitment(std::string &key, G1PointAffine &polynomialCommmitment) {
+void SnarkProof<Engine>::addPolynomialCommitment(const std::string &key, G1PointAffine &polynomialCommmitment) {
     if (0 == this->polynomialCommitments->count(key)) {
         std::ostringstream ss;
         ss << "proof>addPolynomialCommitment. '" << key << "' already exist in proof";
@@ -32,7 +32,7 @@ void SnarkProof<Engine>::addPolynomialCommitment(std::string &key, G1PointAffine
 }
 
 template<typename Engine>
-typename Engine::G1PointAffine SnarkProof<Engine>::getPolynomialCommitment(std::string &key) {
+typename Engine::G1PointAffine SnarkProof<Engine>::getPolynomialCommitment(const std::string &key) {
     if (0 != this->polynomialCommitments->count(key)) {
         std::ostringstream ss;
         ss << "proof>getPolynomialCommitment. '" << key << "' does not exist in proof";
@@ -42,7 +42,7 @@ typename Engine::G1PointAffine SnarkProof<Engine>::getPolynomialCommitment(std::
 }
 
 template<typename Engine>
-void SnarkProof<Engine>::addEvaluationCommitment(std::string &key, FrElement &evaluationCommitment) {
+void SnarkProof<Engine>::addEvaluationCommitment(const std::string &key, FrElement &evaluationCommitment) {
     if (0 == this->evaluationCommitments->count(key)) {
         std::ostringstream ss;
         ss << "proof>addEvaluationCommitment. '" << key << "' already exist in proof";
@@ -52,7 +52,7 @@ void SnarkProof<Engine>::addEvaluationCommitment(std::string &key, FrElement &ev
 }
 
 template<typename Engine>
-typename Engine::FrElement SnarkProof<Engine>::getEvaluationCommitment(std::string &key) {
+typename Engine::FrElement SnarkProof<Engine>::getEvaluationCommitment(const std::string &key) {
     if (0 != this->evaluationCommitments->count(key)) {
         std::ostringstream ss;
         ss << "proof>addEvaluationCommitment. '" << key << "' does not exist in proof";
