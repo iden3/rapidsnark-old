@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
                     zkey->getSectionData(9)     // pointsH1
             );
             AltBn128::FrElement *wtnsData = (AltBn128::FrElement *) wtns->getSectionData(2);
-                auto proof = prover->prove(wtnsData);
+            auto proof = prover->prove(wtnsData);
 
             std::ofstream proofFile;
             proofFile.open(proofFilename);

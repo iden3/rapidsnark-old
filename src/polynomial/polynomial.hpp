@@ -52,9 +52,9 @@ public:
 
     typename Engine::FrElement evaluate(FrElement point) const;
 
-    void add(Polynomial<FrElement> &polynomial);
+    void add(Polynomial<Engine> &polynomial);
 
-    void sub(Polynomial<FrElement> &polynomial);
+    void sub(Polynomial<Engine> &polynomial);
 
     void mulScalar(FrElement &value);
 
@@ -72,9 +72,9 @@ public:
 
     void byX();
 
-    static Polynomial<Engine> lagrangePolynomialInterpolation(Polynomial<Engine> &pol, FrElement xArr[], FrElement yArr[]);
+    static Polynomial<Engine>* lagrangePolynomialInterpolation(FrElement xArr[], FrElement yArr[]);
 
-    static Polynomial<Engine> zerofierPolynomial(FrElement xArr[]);
+    static Polynomial<Engine>* zerofierPolynomial(FrElement xArr[]);
 
     void print();
 };

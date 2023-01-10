@@ -23,9 +23,9 @@ public:
 
     Evaluations(u_int64_t length);
 
-    Evaluations(FrElement evaluations[]);
+    Evaluations(FrElement *evaluations);
 
-    Evaluations(Polynomial<FrElement> *polynomial);
+    Evaluations(Polynomial<Engine> &polynomial);
 
     ~Evaluations();
 

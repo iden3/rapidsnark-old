@@ -107,16 +107,16 @@ u_int64_t Polynomial<Engine>::getDegree() const {
 
 template<typename Engine>
 typename Engine::FrElement Polynomial<Engine>::evaluate(FrElement point) const {
-    FrElement result = E.Fr.zero;
+    FrElement result = E.fr.zero;
     for (u_int64_t i = 0; i <= degree; i++) {
-        result = E.Fr.add(E.Fr.mul(result, point), coef[i]);
+        result = E.fr.add(E.fr.mul(result, point), coef[i]);
     }
     return result;
 }
 
 
 template<typename Engine>
-void Polynomial<Engine>::add(Polynomial<FrElement> &polynomial) {
+void Polynomial<Engine>::add(Polynomial<Engine> &polynomial) {
     FrElement *newCoef;
     bool resize = polynomial.length > this->length;
 
@@ -130,7 +130,7 @@ void Polynomial<Engine>::add(Polynomial<FrElement> &polynomial) {
     for (u_int64_t i = 0; i < std::max(thisLength, polyLength); i++) {
         FrElement a = i < thisLength ? this->coef[i] : this.Fr.zero;
         FrElement b = i < polyLength ? polynomial->coef[i] : this.Fr.zero;
-        FrElement sum = E.Fr.add(a, b);
+        FrElement sum = E.fr.add(a, b);
 
         if (resize) {
             newCoef[i] = sum;
@@ -148,7 +148,7 @@ void Polynomial<Engine>::add(Polynomial<FrElement> &polynomial) {
 }
 
 template<typename Engine>
-void Polynomial<Engine>::sub(Polynomial<FrElement> &polynomial) {
+void Polynomial<Engine>::sub(Polynomial<Engine> &polynomial) {
     FrElement *newCoef;
     bool resize = polynomial.length > this->length;
 
@@ -162,7 +162,7 @@ void Polynomial<Engine>::sub(Polynomial<FrElement> &polynomial) {
     for (u_int64_t i = 0; i < std::max(thisLength, polyLength); i++) {
         FrElement a = i < thisLength ? this->coef[i] : this.Fr.zero;
         FrElement b = i < polyLength ? polynomial->coef[i] : this.Fr.zero;
-        FrElement sub = E.Fr.sub(a, b);
+        FrElement sub = E.fr.sub(a, b);
 
         if (resize) {
             newCoef[i] = sub;
@@ -182,26 +182,26 @@ void Polynomial<Engine>::sub(Polynomial<FrElement> &polynomial) {
 template<typename Engine>
 void Polynomial<Engine>::mulScalar(FrElement &value) {
     for (u_int64_t i = 0; i < this->length; i++) {
-        this.coef[i] = E.Fr.mul(this->coef[i], value);
+        this.coef[i] = E.fr.mul(this->coef[i], value);
     }
 }
 
 template<typename Engine>
 void Polynomial<Engine>::addScalar(FrElement &value) {
-    FrElement currentValue = (0 == this->length) ? E.Fr.zero : this->coef[0];
-    this->coef[0] = E.Fr.add(currentValue, value);
+    FrElement currentValue = (0 == this->length) ? E.fr.zero : this->coef[0];
+    this->coef[0] = E.fr.add(currentValue, value);
 }
 
 template<typename Engine>
 void Polynomial<Engine>::subScalar(FrElement &value) {
-    FrElement currentValue = (0 == this->length) ? E.Fr.zero : this->coef[0];
-    this->coef[0] = E.Fr.sub(currentValue, value);
+    FrElement currentValue = (0 == this->length) ? E.fr.zero : this->coef[0];
+    this->coef[0] = E.fr.sub(currentValue, value);
 }
 
 // Multiply current polynomial by the polynomial (X - value)
 template<typename Engine>
 void Polynomial<Engine>::byXSubValue(FrElement &value) {
-    bool resize = E.Fr.neq(E.Fr.zero, this->coef[this->length - 1]);
+    bool resize = E.fr.neq(E.fr.zero, this->coef[this->length - 1]);
 
     u_int64_t length = resize ? this->length + 1 : this->length;
     Polynomial<Engine> *pol = new Polynomial<Engine>(length);
@@ -210,7 +210,7 @@ void Polynomial<Engine>::byXSubValue(FrElement &value) {
     memcpy(pol->coef[1], this->coef, sizeof(this->coef));
 
     // Step 1: multiply each coefficient by (-value)
-    this->mulScalar(E.Fr.neg(value));
+    this->mulScalar(E.fr.neg(value));
 
     // Step 2: Add current polynomial to destination polynomial
     pol->add(this);
@@ -233,10 +233,10 @@ Polynomial<Engine> Polynomial<Engine>::divBy(Polynomial<Engine> &polynomial) {
     this.coef = new FrElement[this->length];
 
     for (u_int64_t i = degreeA - degreeB; i >= 0; i--) {
-        this->coef[i] = E.Fr.div(buffPolR[i + degreeB], polynomial[degreeB]);
+        this->coef[i] = E.fr.div(buffPolR[i + degreeB], polynomial[degreeB]);
 
         for (u_int64_t j = 0; j <= degreeB; j++) {
-            buffPolR[i + j] = E.Fr.sub(buffPolR[i + j], E.Fr.mul(this->coef[i], polynomial->coef[j]));
+            buffPolR[i + j] = E.fr.sub(buffPolR[i + j], E.fr.mul(this->coef[i], polynomial->coef[j]));
         }
     }
 
@@ -252,14 +252,14 @@ Polynomial<Engine> Polynomial<Engine>::divBy(Polynomial<Engine> &polynomial) {
 template<typename Engine>
 void Polynomial<Engine>::divZh(u_int64_t domainSize) {
     for (u_int64_t i = 0; i < domainSize; i++) {
-        this->coef[i] = E.Fr.neg(this->coef.slice[i]);
+        this->coef[i] = E.fr.neg(this->coef.slice[i]);
     }
 
     for (u_int64_t i = domainSize; i < this->length; i++) {
-        coef[i] = E.Fr.sub(coef[i - domainSize], coef[i]);
+        coef[i] = E.fr.sub(coef[i - domainSize], coef[i]);
 
         if (i > (domainSize * 3 - 4)) {
-            if (!E.Fr.isZero(coef[i])) {
+            if (!E.fr.isZero(coef[i])) {
                 throw std::runtime_error("Polynomial is not divisible");
             }
         }
@@ -269,7 +269,7 @@ void Polynomial<Engine>::divZh(u_int64_t domainSize) {
 
 template<typename Engine>
 void Polynomial<Engine>::byX() {
-    bool resize = E.Fr.neq(E.Fr.zero, this->coef[this->length - 1]);
+    bool resize = E.fr.neq(E.fr.zero, this->coef[this->length - 1]);
 
     if (resize) {
         FrElement *newCoef = new FrElement[this->length + 1];
@@ -279,12 +279,13 @@ void Polynomial<Engine>::byX() {
         memcpy(coef[1], coef[0], sizeof(coef));
     }
 
-    coef[0] = E.Fr.zero;
+    coef[0] = E.fr.zero;
     fixDegree();
 }
 
 template<typename Engine>
-Polynomial<Engine> Polynomial<Engine>::lagrangePolynomialInterpolation(Polynomial<Engine> &pol, FrElement xArr[], FrElement yArr[]) {
+Polynomial<Engine>*
+Polynomial<Engine>::lagrangePolynomialInterpolation(FrElement xArr[], FrElement yArr[]) {
     Polynomial<Engine> *polynomial = computeLagrangePolynomial(0);
     u_int64_t len = sizeof(xArr);
 
@@ -296,7 +297,8 @@ Polynomial<Engine> Polynomial<Engine>::lagrangePolynomialInterpolation(Polynomia
 }
 
 template<typename Engine>
-Polynomial<Engine> Polynomial<Engine>::computeLagrangePolynomial(u_int64_t i, Polynomial<Engine> &pol, FrElement xArr[], FrElement yArr[]) {
+Polynomial<Engine> Polynomial<Engine>::computeLagrangePolynomial(u_int64_t i, Polynomial<Engine> &pol, FrElement xArr[],
+                                                                 FrElement yArr[]) {
     Engine &E = Engine::engine;
     Polynomial<Engine> *polynomial = nullptr;
     u_int64_t len = sizeof(xArr);
@@ -306,16 +308,16 @@ Polynomial<Engine> Polynomial<Engine>::computeLagrangePolynomial(u_int64_t i, Po
 
         if (nullptr == polynomial) {
             polynomial = new Polynomial<Engine>(len);
-            polynomial[0] = E.Fr.neg(xArr[j]);
-            polynomial[1] = E.Fr.one;
+            polynomial[0] = E.fr.neg(xArr[j]);
+            polynomial[1] = E.fr.one;
         } else {
             polynomial->byXSubValue(xArr[j]);
         }
     }
 
     FrElement denominator = polynomial->evaluate(xArr[i]);
-    denominator = E.Fr.inv(denominator);
-    FrElement mulFactor = E.Fr.mul(yArr[i], denominator);
+    denominator = E.fr.inv(denominator);
+    FrElement mulFactor = E.fr.mul(yArr[i], denominator);
 
     polynomial->mulScalar(mulFactor);
 
@@ -323,15 +325,15 @@ Polynomial<Engine> Polynomial<Engine>::computeLagrangePolynomial(u_int64_t i, Po
 }
 
 template<typename Engine>
-Polynomial<Engine> Polynomial<Engine>::zerofierPolynomial(FrElement xArr[]) {
+Polynomial<Engine>* Polynomial<Engine>::zerofierPolynomial(FrElement xArr[]) {
     Engine &E = Engine::engine;
     u_int64_t len = sizeof(xArr);
     Polynomial<Engine> polynomial = new Polynomial<Engine>(len);
 
     // Build a zerofier polynomial with the following form:
     // zerofier(X) = (X-xArr[0])(X-xArr[1])...(X-xArr[n])
-    polynomial[0] = E.Fr.neg(xArr[0]);
-    polynomial[1] = E.Fr.one;
+    polynomial[0] = E.fr.neg(xArr[0]);
+    polynomial[1] = E.fr.one;
 
     for (u_int64_t i = 1; i < len; i++) {
         polynomial->byXSubValue(xArr[i]);
@@ -346,15 +348,15 @@ void Polynomial<Engine>::print() {
 
     for (u_int64_t i = this->degree; i >= 0; i--) {
         FrElement coef = coef[i];
-        if (E.Fr.neq(E.Fr.zero, coef)) {
-            if (E.Fr.isNegative(coef)) {
+        if (E.fr.neq(E.fr.zero, coef)) {
+            if (E.fr.isNegative(coef)) {
                 res << " - ";
             } else if (i != this->degree) {
                 res << " + ";
             }
-            res << E.Fr.toString(coef);
+            res << E.fr.toString(coef);
             if (i > 0) {
-                if(i>1) {
+                if (i > 1) {
                     res << "x^" << i;
                 } else {
                     res << "x";

@@ -21,6 +21,7 @@ namespace Fflonk {
     class FflonkProver {
         using FrElement = typename Engine::FrElement;
         using G1Point = typename Engine::G1Point;
+        using G1PointAffine = typename Engine::G1PointAffine;
 
         Engine &E;
         FFT<typename Engine::Fr> *fft;
@@ -44,13 +45,13 @@ namespace Fflonk {
         FrElement *buffWitness;
         FrElement *buffInternalWitness;
 
-        std::map<std::string, FrElement[]> buffers;
+        std::map<std::string, FrElement*> buffers;
         std::map <std::string, Polynomial<Engine>*> polynomials;
         std::map <std::string, Evaluations<Engine>*> evaluations;
 
         std::map <std::string, FrElement> toInverse;
         std::map <std::string, FrElement> challenges;
-        std::map<std::string, FrElement[]> roots;
+        std::map<std::string, FrElement*> roots;
         FrElement blindingFactors[10];
 
 
@@ -110,7 +111,7 @@ namespace Fflonk {
 
         FrElement getMontgomeryBatchedInverse();
 
-        G1Point expTau(const FrElement *polynomial, int64_t from, int64_t count);
+        G1Point multiExponentiation(const Polynomial<Engine> *polynomial, const std::string name);
     };
 }
 

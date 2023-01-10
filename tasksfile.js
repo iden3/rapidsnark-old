@@ -9,7 +9,7 @@ function createFieldSources() {
     sh("npm install", {cwd: "depends/ffiasm"});
     sh("node ../depends/ffiasm/src/buildzqfield.js -q 21888242871839275222246405745257275088696311157297823662689037894645226208583 -n Fq", {cwd: "build"});
     sh("node ../depends/ffiasm/src/buildzqfield.js -q 21888242871839275222246405745257275088548364400416034343698204186575808495617 -n Fr", {cwd: "build"});
-    
+
     if (process.platform === "darwin") {
         sh("nasm -fmacho64 --prefix _ fq.asm", {cwd: "build"});
     }  else if (process.platform === "linux") {
@@ -41,6 +41,7 @@ function buildProverServer() {
         " -I../depends/ffiasm/c"+
         " -I../depends/circom_runtime/c"+
         " ../src/main_proofserver.cpp"+
+        " ../src/curve_utils.cpp"+
         " ../src/proverapi.cpp"+
         " ../src/fullprover.cpp"+
         " ../src/binfile_utils.cpp"+
@@ -75,6 +76,7 @@ function buildProver() {
         " ../src/zkey_utils.cpp"+
         " ../src/zkey.cpp"+
         " ../src/zkey_fflonk.cpp"+
+        " ../src/curve_utils.cpp"+
         " ../src/wtns_utils.cpp"+
         " ../src/mul_z.cpp"+
         " ../src/snark_proof.cpp"+
@@ -106,7 +108,6 @@ function compile() {
         " -I../depends/ffiasm/c"+
         " -I../depends/json/single_include"+
         " ../src/main_prover.cpp"+
-        " ../src/fflonk_prover.cpp"+
         " ../src/binfile_utils.cpp"+
         " ../src/zkey_utils.cpp"+
         " ../src/zkey.cpp"+
@@ -125,8 +126,8 @@ function compile() {
         " ../depends/ffiasm/c/alt_bn128.cpp"+
         " fq.cpp"+
         " fr.cpp"+
-//        " -Wall -Wno-sign-compare"+
-        " -fmax-errors=5 -std=c++17 -pthread -lgmp -lsodium -O3 -lssl -lcrypto -fopenmp", {cwd: "build", nopipe: true}
+        //        " -Wall -Wno-sign-compare"+
+        " -fmax-errors=20 -std=c++17 -pthread -O3 -lssl -lcrypto -fopenmp", {cwd: "build", nopipe: true}
     );
 }
 

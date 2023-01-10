@@ -17,7 +17,7 @@ Evaluations<Engine>::Evaluations(u_int64_t length) {
 }
 
 template<typename Engine>
-Evaluations<Engine>::Evaluations(FrElement evaluations[]) {
+Evaluations<Engine>::Evaluations(FrElement *evaluations) {
     u_int64_t len = sizeof(*evaluations) / sizeof(Engine::FrElement);
     initialize(len);
 
@@ -25,7 +25,7 @@ Evaluations<Engine>::Evaluations(FrElement evaluations[]) {
 }
 
 template<typename Engine>
-Evaluations<Engine>::Evaluations(Polynomial<FrElement> *polynomial) {
+Evaluations<Engine>::Evaluations(Polynomial<Engine> &polynomial) {
     u_int64_t extendedLength = polynomial->length * 4;
 
     //Extend polynomial
