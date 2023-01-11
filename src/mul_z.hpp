@@ -18,14 +18,14 @@ class MulZ {
 public:
     MulZ(Engine &E, FFT<typename Engine::Fr> *fft);
 
-    tuple <FrElement, FrElement> mul2( FrElement &a,  FrElement &b,
-                                       FrElement &ap,  FrElement &bp,
+    tuple <FrElement, FrElement> mul2(const FrElement &a, const FrElement &b,
+                                      const FrElement &ap, const FrElement &bp,
                                       int64_t p);
 
-    tuple <FrElement, FrElement> mul4( FrElement &a,  FrElement &b,
-                                       FrElement &c,  FrElement &d,
-                                       FrElement &ap,  FrElement &bp,
-                                       FrElement &cp,  FrElement &dp,
+    tuple <FrElement, FrElement> mul4(const FrElement &a, const FrElement &b,
+                                      const FrElement &c, const FrElement &d,
+                                      const FrElement &ap, const FrElement &bp,
+                                      const FrElement &cp, const FrElement &dp,
                                       int64_t p);
 };
 
