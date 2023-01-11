@@ -1,5 +1,5 @@
-#ifndef __RAPIDSNARK_KECCAK_WRAPPER_H__
-#define __RAPIDSNARK_KECCAK_WRAPPER_H__
+#ifndef __KECCAK_WRAPPER_H__
+#define __KECCAK_WRAPPER_H__
 
 #include <sys/types.h>
 #include <sys/stat.h>

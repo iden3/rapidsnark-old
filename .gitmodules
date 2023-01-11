@@ -10,3 +10,6 @@
 [submodule "depends/circom_runtime"]
 	path = depends/circom_runtime
 	url = https://github.com/iden3/circom_runtime.git
+[submodule "depends/xkcp"]
+	path = depends/xkcp
+	url = https://github.com/XKCP/XKCP

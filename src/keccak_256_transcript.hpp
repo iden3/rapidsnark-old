@@ -10,12 +10,27 @@ class Keccak256Transcript {
     using FrElement = typename Engine::FrElement;
     using G1Point = typename Engine::G1Point;
 
+    enum ElementTypeEnum {
+        FrType, G1Type
+    };
+    struct ElementTypeStruct {
+        ElementTypeEnum type;
+        std::any element;
+    };
+
+    Engine &E;
+
     int fieldElements;
     int groupElements;
 
-    std::vector<std::any> elements;
+    std::vector<ElementTypeStruct> elements;
+
+    u_int64_t toRprBE(G1Point &point, uint8_t *data, int64_t seek, int64_t size);
+
+    void hashToFr(FrElement &element, u_int8_t *data, int64_t size);
+
 public:
-    Keccak256Transcript();
+    Keccak256Transcript(Engine &E);
 
     void addScalar(FrElement value);
 
@@ -25,5 +40,7 @@ public:
 
     typename Engine::FrElement getChallenge();
 };
+
+#include "keccak_256_transcript.cpp"
 
 #endif

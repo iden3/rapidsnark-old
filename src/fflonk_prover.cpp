@@ -566,7 +566,7 @@ namespace Fflonk {
     void FflonkProver<Engine>::round2() {
         // STEP 2.1 - Compute permutation challenge beta and gamma ∈ F
         // Compute permutation challenge beta
-        Keccak256Transcript<Engine> *transcript = new Keccak256Transcript<Engine>();
+        Keccak256Transcript<Engine> *transcript = new Keccak256Transcript<Engine>(E);
         for (u_int32_t i = 0; i < zkey->nPublic; i++) {
             transcript->addScalar(buffers["A"][i]);
         }
@@ -936,7 +936,7 @@ namespace Fflonk {
     template<typename Engine>
     void FflonkProver<Engine>::round3() {
         // STEP 3.1 - Compute evaluation challenge xi ∈ S
-        Keccak256Transcript<Engine> *transcript = new Keccak256Transcript<Engine>();
+        Keccak256Transcript<Engine> *transcript = new Keccak256Transcript<Engine>(E);
         transcript->addPolCommitment(proof->getPolynomialCommitment("C2"));
 
         // Obtain a xi_seeder from the transcript
@@ -1023,7 +1023,7 @@ namespace Fflonk {
     template<typename Engine>
     void FflonkProver<Engine>::round4() {
         // STEP 4.1 - Compute challenge alpha ∈ F
-        Keccak256Transcript<Engine> *transcript = new Keccak256Transcript<Engine>();
+        Keccak256Transcript<Engine> *transcript = new Keccak256Transcript<Engine>(E);
         transcript->addScalar(proof->getEvaluationCommitment("ql"));
         transcript->addScalar(proof->getEvaluationCommitment("qr"));
         transcript->addScalar(proof->getEvaluationCommitment("qm"));
@@ -1199,7 +1199,7 @@ namespace Fflonk {
     void FflonkProver<Engine>::round5() {
         // STEP 5.1 - Compute random evaluation point y ∈ F
         // STEP 4.1 - Compute challenge alpha ∈ F
-        Keccak256Transcript<Engine> *transcript = new Keccak256Transcript<Engine>();
+        Keccak256Transcript<Engine> *transcript = new Keccak256Transcript<Engine>(E);
         transcript->addPolCommitment(proof->getPolynomialCommitment("W1"));
 
         challenges["y"] = transcript->getChallenge();
