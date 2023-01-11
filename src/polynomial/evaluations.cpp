@@ -3,7 +3,6 @@
 
 template<typename Engine>
 void Evaluations<Engine>::initialize(u_int64_t length) {
-    E = Engine::engine;
     fft = new FFT<typename Engine::Fr>(length);
 
     eval = new FrElement[length];
@@ -12,12 +11,12 @@ void Evaluations<Engine>::initialize(u_int64_t length) {
 }
 
 template<typename Engine>
-Evaluations<Engine>::Evaluations(u_int64_t length) {
+Evaluations<Engine>::Evaluations(Engine &_E, u_int64_t length) : E(_E) {
     this->initialize(length);
 }
 
 template<typename Engine>
-Evaluations<Engine>::Evaluations(FrElement *evaluations) {
+Evaluations<Engine>::Evaluations(Engine &_E, FrElement *evaluations) : E(_E) {
     u_int64_t len = sizeof(*evaluations) / sizeof(Engine::FrElement);
     initialize(len);
 
@@ -25,15 +24,15 @@ Evaluations<Engine>::Evaluations(FrElement *evaluations) {
 }
 
 template<typename Engine>
-Evaluations<Engine>::Evaluations(Polynomial<Engine> &polynomial) {
-    u_int64_t extendedLength = polynomial->length * 4;
+Evaluations<Engine>::Evaluations(Engine &_E, Polynomial<Engine> &polynomial) : E(_E) {
+    u_int64_t extendedLength = polynomial.getLength() * 4;
 
     //Extend polynomial
     initialize(extendedLength);
 
 #pragma omp parallel for
-    for (int64_t index = 0; index < polynomial->degree + 1; ++index) {
-        eval[index] = polynomial[index];
+    for (int64_t index = 0; index < polynomial.getDegree() + 1; ++index) {
+        eval[index] = polynomial.getCoef(index);
     }
 
     //Coefficients to evaluations

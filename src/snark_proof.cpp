@@ -7,10 +7,9 @@
 using namespace CPlusPlusLogging;
 
 template<typename Engine>
-SnarkProof<Engine>::SnarkProof(const std::string &protocol) {
-    this->E = Engine::engine;
+SnarkProof<Engine>::SnarkProof(Engine &_E, const std::string &protocol) : E(_E) {
     this->protocol = protocol;
-    this->curve = CurveUtils::getCurveNameByEngine(this->E);
+    this->curve = CurveUtils::getCurveNameByEngine();
     this->polynomialCommitments = {};
     this->evaluationCommitments = {};
 }
@@ -23,7 +22,7 @@ void SnarkProof<Engine>::resetProof() {
 
 template<typename Engine>
 void SnarkProof<Engine>::addPolynomialCommitment(const std::string &key, G1Point &polynomialCommmitment) {
-    if (0 == this->polynomialCommitments->count(key)) {
+    if (0 == polynomialCommitments.count(key)) {
         std::ostringstream ss;
         ss << "proof>addPolynomialCommitment. '" << key << "' already exist in proof";
         LOG_ALARM(ss);
@@ -33,7 +32,7 @@ void SnarkProof<Engine>::addPolynomialCommitment(const std::string &key, G1Point
 
 template<typename Engine>
 typename Engine::G1Point SnarkProof<Engine>::getPolynomialCommitment(const std::string &key) {
-    if (0 != this->polynomialCommitments->count(key)) {
+    if (0 != polynomialCommitments.count(key)) {
         std::ostringstream ss;
         ss << "proof>getPolynomialCommitment. '" << key << "' does not exist in proof";
         LOG_ALARM(ss);
@@ -43,7 +42,7 @@ typename Engine::G1Point SnarkProof<Engine>::getPolynomialCommitment(const std::
 
 template<typename Engine>
 void SnarkProof<Engine>::addEvaluationCommitment(const std::string &key, FrElement evaluationCommitment) {
-    if (0 == this->evaluationCommitments->count(key)) {
+    if (0 == evaluationCommitments.count(key)) {
         std::ostringstream ss;
         ss << "proof>addEvaluationCommitment. '" << key << "' already exist in proof";
         LOG_ALARM(ss);
@@ -53,7 +52,7 @@ void SnarkProof<Engine>::addEvaluationCommitment(const std::string &key, FrEleme
 
 template<typename Engine>
 typename Engine::FrElement SnarkProof<Engine>::getEvaluationCommitment(const std::string &key) {
-    if (0 != this->evaluationCommitments->count(key)) {
+    if (0 != evaluationCommitments.count(key)) {
         std::ostringstream ss;
         ss << "proof>addEvaluationCommitment. '" << key << "' does not exist in proof";
         LOG_ALARM(ss);
@@ -65,14 +64,16 @@ template<typename Engine>
 json SnarkProof<Engine>::toJson() {
     json jsonProof;
 
-    for (auto const &[key, point]: this->polynomialCommitments) {
+    for (auto &[key, point]: this->polynomialCommitments) {
         jsonProof[key] = {};
-        jsonProof[key].push_back(E.f1.toString(point.x));
-        jsonProof[key].push_back(E.f1.toString(point.y));
+        std::string x = E.f1.toString(point.x);
+        std::string y = E.f1.toString(point.y);
+        jsonProof[key].push_back(x);
+        jsonProof[key].push_back(y);
         jsonProof[key].push_back("1");
     }
 
-    for (auto const &[key, element]: this->evaluationCommitments) {
+    for (auto &[key, element]: this->evaluationCommitments) {
         jsonProof[key] = E.fr.toString(element);
     }
 

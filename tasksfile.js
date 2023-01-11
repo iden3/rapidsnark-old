@@ -78,10 +78,9 @@ function buildProver() {
         " ../src/zkey_fflonk.cpp"+
         " ../src/curve_utils.cpp"+
         " ../src/wtns_utils.cpp"+
-        " ../src/mul_z.cpp"+
-        " ../src/snark_proof.cpp"+
-        " ../src/polynomial/polynomial.cpp"+
-        " ../src/polynomial/evaluations.cpp"+
+        //" ../src/snark_proof.cpp"+
+        //" ../src/polynomial/polynomial.cpp"+
+        //" ../src/polynomial/evaluations.cpp"+
         " ../src/keccak_256_transcript.cpp"+
         " ../src/dump.cpp"+
         " ../src/logger.cpp"+
@@ -112,11 +111,11 @@ function compile() {
         " ../src/zkey_utils.cpp"+
         " ../src/zkey.cpp"+
         " ../src/zkey_fflonk.cpp"+
+        " ../src/curve_utils.cpp"+
         " ../src/wtns_utils.cpp"+
-        " ../src/mul_z.cpp"+
         " ../src/snark_proof.cpp"+
-        " ../src/polynomial/polynomial.cpp"+
-        " ../src/polynomial/evaluations.cpp"+
+        //" ../src/polynomial/polynomial.cpp"+
+        //" ../src/polynomial/evaluations.cpp"+
         " ../src/keccak_256_transcript.cpp"+
         " ../src/dump.cpp"+
         " ../src/logger.cpp"+

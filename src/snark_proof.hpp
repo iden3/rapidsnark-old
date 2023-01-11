@@ -17,9 +17,9 @@ class SnarkProof {
     std::string curve;
 
     std::map <std::string, G1Point> polynomialCommitments;
-    std::map <std::string, FrElement> evaluaationCommitments;
+    std::map <std::string, FrElement> evaluationCommitments;
 public :
-    SnarkProof(const std::string &protocol);
+    SnarkProof(Engine &E, const std::string &protocol);
 
     void resetProof();
 
@@ -34,4 +34,6 @@ public :
     json toJson();
 };
 
-#endif //SNARK_PROOF_HPP
+#include "snark_proof.cpp"
+
+#endif

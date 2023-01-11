@@ -16,17 +16,19 @@ class MulZ {
     FrElement Z2[4];
     FrElement Z3[4];
 public:
-    MulZ(FFT<typename Engine::Fr> *fft);
+    MulZ(Engine &E, FFT<typename Engine::Fr> *fft);
 
-    tuple <FrElement, FrElement> mul2(const FrElement &a, const FrElement &b,
-                                      const FrElement &ap, const FrElement &bp,
+    tuple <FrElement, FrElement> mul2( FrElement &a,  FrElement &b,
+                                       FrElement &ap,  FrElement &bp,
                                       int64_t p);
 
-    tuple <FrElement, FrElement> mul4(const FrElement &a, const FrElement &b,
-                                      const FrElement &c, const FrElement &d,
-                                      const FrElement &ap, const FrElement &bp,
-                                      const FrElement &cp, const FrElement &dp,
+    tuple <FrElement, FrElement> mul4( FrElement &a,  FrElement &b,
+                                       FrElement &c,  FrElement &d,
+                                       FrElement &ap,  FrElement &bp,
+                                       FrElement &cp,  FrElement &dp,
                                       int64_t p);
 };
+
+#include "mul_z.cpp"
 
 #endif

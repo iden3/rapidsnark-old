@@ -21,11 +21,11 @@ class Evaluations {
 public:
     FrElement *eval;
 
-    Evaluations(u_int64_t length);
+    Evaluations(Engine &_E, u_int64_t length);
 
-    Evaluations(FrElement *evaluations);
+    Evaluations(Engine &_E, FrElement *evaluations);
 
-    Evaluations(Polynomial<Engine> &polynomial);
+    Evaluations(Engine &_E, Polynomial<Engine> &polynomial);
 
     ~Evaluations();
 
@@ -33,5 +33,7 @@ public:
 
     u_int64_t getLength() const;
 };
+
+#include "evaluations.cpp"
 
 #endif

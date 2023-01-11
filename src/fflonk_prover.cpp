@@ -50,7 +50,7 @@ namespace Fflonk {
             fft = new FFT<typename Engine::Fr>(zkey->domainSize * 9 + 18);
             zkeyPower = fft->log2(zkey->domainSize);
 
-            mulZ = new MulZ<Engine>(fft);
+            mulZ = new MulZ<Engine>(E, fft);
 
             LOG_TRACE("> Computing omegaBuffer");
             omegaBuffer = new FrElement[zkey->domainSize * 16];
@@ -127,7 +127,7 @@ namespace Fflonk {
             //   · L_i i=1 to num public inputs, needed in step 6 and 7 of the verifier to compute L_1(xi) and PI(xi)
             //toInverse property is the variable to store the values to be inverted
 
-            proof = new SnarkProof<Engine>("fflonk");
+            proof = new SnarkProof<Engine>(E, "fflonk");
 
             ss << "> Reading Section " << Zkey::ZKEY_FF_ADDITIONS_SECTION << ". Additions\n";
             LOG_TRACE(ss);
@@ -139,18 +139,18 @@ namespace Fflonk {
             LOG_TRACE(ss);
 
             LOG_TRACE("··· Reading Sigma polynomials ");
-            polynomials["Sigma1"] = new Polynomial<Engine>(zkey->domainSize);
-            polynomials["Sigma2"] = new Polynomial<Engine>(zkey->domainSize);
-            polynomials["Sigma3"] = new Polynomial<Engine>(zkey->domainSize);
+            polynomials["Sigma1"] = new Polynomial<Engine>(E, zkey->domainSize);
+            polynomials["Sigma2"] = new Polynomial<Engine>(E, zkey->domainSize);
+            polynomials["Sigma3"] = new Polynomial<Engine>(E, zkey->domainSize);
 
             memcpy(polynomials["Sigma1"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION), sDomain);
             memcpy(polynomials["Sigma2"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION), sDomain);
             memcpy(polynomials["Sigma3"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION), sDomain);
 
             LOG_TRACE("··· Reading Sigma evaluations ");
-            evaluations["Sigma1"] = new Evaluations<Engine>(zkey->domainSize);
-            evaluations["Sigma2"] = new Evaluations<Engine>(zkey->domainSize);
-            evaluations["Sigma3"] = new Evaluations<Engine>(zkey->domainSize);
+            evaluations["Sigma1"] = new Evaluations<Engine>(E, zkey->domainSize);
+            evaluations["Sigma2"] = new Evaluations<Engine>(E, zkey->domainSize);
+            evaluations["Sigma3"] = new Evaluations<Engine>(E, zkey->domainSize);
 
             memcpy(evaluations["Sigma1"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION) + sDomain, sDomain * 4);
             memcpy(evaluations["Sigma2"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION) + sDomain, sDomain * 4);
@@ -376,10 +376,10 @@ namespace Fflonk {
         // and compute the coefficients of the wire polynomials from evaluations
 //TODO remove        u_int32_t bFactorsLen = sizeof(*blindingFactors) / sizeof(Engine::FrElement);
         u_int32_t bFactorsLen = 1;
-        polynomials[polName] = new Polynomial<Engine>(buffers[polName], zkey->domainSize, bFactorsLen);
+        polynomials[polName] = new Polynomial<Engine>(E, buffers[polName], zkey->domainSize, bFactorsLen);
 
         // Compute the extended evaluations of the wire polynomials
-        evaluations[polName] = new Evaluations<Engine>(*polynomials[polName]);
+        evaluations[polName] = new Evaluations<Engine>(E, *polynomials[polName]);
 
         // Blind polynomial coefficients with blinding scalars blindingFactors
         polynomials[polName]->blindCoefficients(blindingFactors);
@@ -395,11 +395,11 @@ namespace Fflonk {
         LOG_TRACE(ss);
 
         // Reserve memory for Q's evaluations
-        evaluations["QL"] = new Evaluations<Engine>(zkey->domainSize * 4);
-        evaluations["QR"] = new Evaluations<Engine>(zkey->domainSize * 4);
-        evaluations["QM"] = new Evaluations<Engine>(zkey->domainSize * 4);
-        evaluations["QO"] = new Evaluations<Engine>(zkey->domainSize * 4);
-        evaluations["QC"] = new Evaluations<Engine>(zkey->domainSize * 4);
+        evaluations["QL"] = new Evaluations<Engine>(E, zkey->domainSize * 4);
+        evaluations["QR"] = new Evaluations<Engine>(E, zkey->domainSize * 4);
+        evaluations["QM"] = new Evaluations<Engine>(E, zkey->domainSize * 4);
+        evaluations["QO"] = new Evaluations<Engine>(E, zkey->domainSize * 4);
+        evaluations["QC"] = new Evaluations<Engine>(E, zkey->domainSize * 4);
 
         // Read Q's evaluations from zkey file
         memcpy(evaluations["QL"], (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION) + sDomain, sDomain * 4);
@@ -409,7 +409,7 @@ namespace Fflonk {
         memcpy(evaluations["QC"], (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QC_SECTION) + sDomain, sDomain * 4);
 
         // Read Lagrange polynomials & evaluations from zkey file
-        evaluations["lagrangePolynomials"] = new Evaluations<Engine>(zkey->domainSize * 5);
+        evaluations["lagrangePolynomials"] = new Evaluations<Engine>(E, zkey->domainSize * 5);
         memcpy(evaluations["lagrangePolynomials"], (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_LAGRANGE_SECTION), sDomain * 5);
 
         // Reserve memory for buffers T0 and T0z
@@ -417,7 +417,8 @@ namespace Fflonk {
         buffers["T0z"] =  new FrElement[zkey->domainSize * 4];
 
         LOG_TRACE("> Computing T0");
-#pragma omp parallel for
+
+        #pragma omp parallel for
         for (u_int32_t i = 0; i < zkey->domainSize * 4; i++) {
             if ((0 != i) && (i % 5000 == 0)) {
                 ss.str("");
@@ -498,14 +499,14 @@ namespace Fflonk {
 
         // Compute the coefficients of the polynomial T0(X) from buffers.T0
         LOG_TRACE("··· Computing T0 ifft");
-        polynomials["T0"] = new Polynomial<Engine>(buffers["T0"], zkey->domainSize * 4);
+        polynomials["T0"] = new Polynomial<Engine>(E, buffers["T0"], zkey->domainSize * 4);
 
         // Divide the polynomial T0 by Z_H(X)
         polynomials["T0"]->divZh(zkey->domainSize);
 
         // Compute the coefficients of the polynomial T0z(X) from buffers.T0z
         LOG_TRACE("··· Computing T0z ifft");
-        polynomials["T0z"] = new Polynomial<Engine>(buffers["T0z"], zkey->domainSize * 4);
+        polynomials["T0z"] = new Polynomial<Engine>(E, buffers["T0z"], zkey->domainSize * 4);
 
         // Add the polynomial T0z to T0 to get the final polynomial T0
         polynomials["T0"]->add(*polynomials["T0z"]);
@@ -544,7 +545,7 @@ namespace Fflonk {
 
         u_int64_t lengthBuffer = std::pow(2, fft->log2(maxDegree - 1) + 1);
 
-        polynomials["C1"] = new Polynomial<Engine>(lengthBuffer);
+        polynomials["C1"] = new Polynomial<Engine>(E, lengthBuffer);
 
         for (u_int64_t i = 0; i < maxLength; i++) {
             polynomials["C1"]->coef[i * 4] = polynomials["A"]->getCoef(i);
@@ -690,10 +691,10 @@ namespace Fflonk {
 
         // Compute polynomial coefficients z(X) from buffers.Z
         LOG_TRACE("··· Computing Z ifft");
-        polynomials["Z"] = new Polynomial<Engine>(buffers["Z"], zkey->domainSize);
+        polynomials["Z"] = new Polynomial<Engine>(E, buffers["Z"], zkey->domainSize);
 
         // Compute extended evaluations of z(X) polynomial
-        evaluations["Z"] = new Evaluations<Engine>(*polynomials["Z"]);
+        evaluations["Z"] = new Evaluations<Engine>(E, *polynomials["Z"]);
 
         // Blind z(X) polynomial coefficients with blinding scalars b
         FrElement bFactors[3] = {blindingFactors[9], blindingFactors[8], blindingFactors[7]};
@@ -747,14 +748,14 @@ namespace Fflonk {
 
         // Compute the coefficients of the polynomial T1(X) from buffers.T1
         LOG_TRACE("··· Computing T1 ifft");
-        polynomials["T1"] = new Polynomial<Engine>(buffers["T1"], zkey->domainSize * 4);
+        polynomials["T1"] = new Polynomial<Engine>(E, buffers["T1"], zkey->domainSize * 4);
 
         // Divide the polynomial T1 by Z_H(X)
         polynomials["T1"]->divZh(zkey->domainSize);
 
         // Compute the coefficients of the polynomial T1z(X) from buffers.T1z
         LOG_TRACE("··· Computing T1z ifft");
-        polynomials["T1z"] = new Polynomial<Engine>(buffers["T1z"], zkey->domainSize * 4);
+        polynomials["T1z"] = new Polynomial<Engine>(E, buffers["T1z"], zkey->domainSize * 4);
 
         // Add the polynomial T0z to T0 to get the final polynomial T0
         polynomials["T1"]->add(*polynomials["T1z"]);
@@ -874,14 +875,14 @@ namespace Fflonk {
 
         // Compute the coefficients of the polynomial T2(X) from buffers.T2
         LOG_TRACE("··· Computing T2 ifft");
-        polynomials["T2"] = new Polynomial<Engine>(buffers["T2"], zkey->domainSize * 4);
+        polynomials["T2"] = new Polynomial<Engine>(E, buffers["T2"], zkey->domainSize * 4);
 
         // Divide the polynomial T2 by Z_H(X)
         polynomials["T2"]->divZh(zkey->domainSize);
 
         // Compute the coefficients of the polynomial T2z(X) from buffers.T2z
         LOG_TRACE("··· Computing T2z ifft");
-        polynomials["T2z"] = new Polynomial<Engine>(buffers["T2z"], zkey->domainSize * 4);
+        polynomials["T2z"] = new Polynomial<Engine>(E, buffers["T2z"], zkey->domainSize * 4);
 
         // Add the polynomial T2z to T2 to get the final polynomial T2
         polynomials["T2"]->add(*polynomials["T2z"]);
@@ -917,7 +918,7 @@ namespace Fflonk {
 
         u_int64_t lengthBuffer = std::pow(2, fft->log2(maxDegree - 1) + 1);
 
-        polynomials["C2"] = new Polynomial<Engine>(lengthBuffer);
+        polynomials["C2"] = new Polynomial<Engine>(E, lengthBuffer);
 
         for (u_int64_t i = 0; i < maxLength; i++) {
             polynomials["C2"]->coef[i * 4] = polynomials["Z"]->getCoef(i);
@@ -984,11 +985,11 @@ namespace Fflonk {
         LOG_TRACE(ss);
 
         // Reserve memory for Q's polynomials
-        polynomials["QL"] = new Polynomial<Engine>(zkey->domainSize);
-        polynomials["QR"] = new Polynomial<Engine>(zkey->domainSize);
-        polynomials["QM"] = new Polynomial<Engine>(zkey->domainSize);
-        polynomials["QO"] = new Polynomial<Engine>(zkey->domainSize);
-        polynomials["QC"] = new Polynomial<Engine>(zkey->domainSize);
+        polynomials["QL"] = new Polynomial<Engine>(E, zkey->domainSize);
+        polynomials["QR"] = new Polynomial<Engine>(E, zkey->domainSize);
+        polynomials["QM"] = new Polynomial<Engine>(E, zkey->domainSize);
+        polynomials["QO"] = new Polynomial<Engine>(E, zkey->domainSize);
+        polynomials["QC"] = new Polynomial<Engine>(E, zkey->domainSize);
 
         // Read Q's evaluations from zkey file
         memcpy(polynomials["QL"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION), sDomain);
@@ -1118,8 +1119,8 @@ namespace Fflonk {
 
         LOG_TRACE("> Computing C1 & C2 fft");
 
-        evaluations["C1"] = new Evaluations<Engine>(*polynomials["C1"]);
-        evaluations["C2"] = new Evaluations<Engine>(*polynomials["C2"]);
+        evaluations["C1"] = new Evaluations<Engine>(E, *polynomials["C1"]);
+        evaluations["C2"] = new Evaluations<Engine>(E, *polynomials["C2"]);
 
         LOG_TRACE("> Computing F");
         // COMPUTE F(X)
@@ -1174,7 +1175,7 @@ namespace Fflonk {
         }
 
         LOG_TRACE("··· Computing F ifft");
-        polynomials["F"] = new Polynomial<Engine>(buffers["F"], zkey->domainSize * 16);
+        polynomials["F"] = new Polynomial<Engine>(E, buffers["F"], zkey->domainSize * 16);
 
         // Check degree
         if (polynomials["F"]->getDegree() >= 9 * zkey->domainSize + 22) {
@@ -1218,7 +1219,7 @@ namespace Fflonk {
         FrElement dividendArr[2];
         E.fr.neg(dividendArr[0], challenges["y"]);
         dividendArr[1] = E.fr.one();
-        Polynomial<Engine> *polDividend = new Polynomial<Engine>(dividendArr);
+        Polynomial<Engine> *polDividend = new Polynomial<Engine>(E, dividendArr);
         Polynomial<Engine> polRemainder = polynomials["L"]->divBy(*polDividend);
 
         // Check degrees
@@ -1271,7 +1272,7 @@ namespace Fflonk {
 
         LOG_TRACE("> Computing F fft");
 
-        evaluations["F"] = new Evaluations<Engine>(*polynomials["F"]);
+        evaluations["F"] = new Evaluations<Engine>(E, *polynomials["F"]);
 
         LOG_TRACE("> Computing L");
 
@@ -1313,7 +1314,7 @@ namespace Fflonk {
         }
 
         LOG_TRACE("··· Computing L ifft");
-        polynomials["L"] = new Polynomial<Engine>(buffers["L"], zkey->domainSize * 16);
+        polynomials["L"] = new Polynomial<Engine>(E, buffers["L"], zkey->domainSize * 16);
 
         // Check degree
         if (polynomials["L"]->getDegree() >= 9 * zkey->domainSize + 18) {

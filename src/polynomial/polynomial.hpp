@@ -20,17 +20,17 @@ class Polynomial {
 
     void initialize(u_int64_t length);
 
-    static Polynomial<Engine> computeLagrangePolynomial(u_int64_t i, Polynomial<Engine> &pol, FrElement xArr[], FrElement yArr[]);
+    static Polynomial<Engine>* computeLagrangePolynomial(u_int64_t i, FrElement xArr[], FrElement yArr[]);
 public:
     FrElement *coef;
 
-    Polynomial(u_int64_t length);
+    Polynomial(Engine &_E, u_int64_t length);
 
     // From coefficients
-    Polynomial(FrElement elements[]);
+    Polynomial(Engine &_E, FrElement elements[]);
 
     // From evaluations
-    Polynomial(FrElement elements[], u_int64_t domainSize, u_int64_t nBlindCoefficients = 0);
+    Polynomial(Engine &_E, FrElement elements[], u_int64_t domainSize, u_int64_t nBlindCoefficients = 0);
 
     ~Polynomial();
 
@@ -78,5 +78,7 @@ public:
 
     void print();
 };
+
+#include "polynomial.cpp"
 
 #endif
