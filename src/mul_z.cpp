@@ -2,7 +2,7 @@
 
 
 template<typename Engine>
-MulZ<Engine>::MulZ(Engine &_E, FFT<typename Engine::Fr> *fft) : E(_E){
+MulZ<Engine>::MulZ(Engine &_E, FFT<typename Engine::Fr> *fft) : E(_E) {
     FrElement w2 = fft->root(2, 1);
 
     Z1[0] = E.fr.zero();

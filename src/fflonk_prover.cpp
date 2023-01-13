@@ -14,11 +14,6 @@ using namespace CPlusPlusLogging;
 namespace Fflonk {
 
     template<typename Engine>
-    FflonkProver<Engine> *makeProver() {
-        return new FflonkProver<Engine>(Engine::engine);
-    }
-
-    template<typename Engine>
     FflonkProver<Engine>::FflonkProver(Engine &_E) : E(_E) {
         curveName = CurveUtils::getCurveNameByEngine();
     }
@@ -1052,12 +1047,12 @@ namespace Fflonk {
         computeF();
         computeZT();
 
-        Polynomial<Engine> polRemainder = polynomials["F"]->divBy(*polynomials["ZT"]);
+        Polynomial<Engine>* polRemainder = polynomials["F"]->divBy(*polynomials["ZT"]);
 
         // Check degrees
-        if (polRemainder.getDegree() > 0) {
+        if (polRemainder->getDegree() > 0) {
             std::ostringstream ss;
-            ss << "Degree of f(X)/ZT(X) remainder is " << polRemainder.getDegree() << " and should be 0";
+            ss << "Degree of f(X)/ZT(X) remainder is " << polRemainder->getDegree() << " and should be 0";
             throw std::runtime_error(ss.str());
         }
         if (polynomials["F"]->getDegree() >= 9 * zkey->domainSize + 12) {
@@ -1148,6 +1143,7 @@ namespace Fflonk {
             E.fr.mul(f1, f1, ftmp);
             E.fr.sub(ftmp, omega, roots["S2h3"][0]);
             E.fr.mul(f1, f1, ftmp);
+            E.fr.mul(f1, f1, ftmp);
             E.fr.sub(ftmp, omega, roots["S2h3"][1]);
             E.fr.mul(f1, f1, ftmp);
             E.fr.sub(ftmp, omega, roots["S2h3"][2]);
@@ -1220,12 +1216,12 @@ namespace Fflonk {
         E.fr.neg(dividendArr[0], challenges["y"]);
         dividendArr[1] = E.fr.one();
         Polynomial<Engine> *polDividend = new Polynomial<Engine>(E, dividendArr);
-        Polynomial<Engine> polRemainder = polynomials["L"]->divBy(*polDividend);
+        Polynomial<Engine>* polRemainder = polynomials["L"]->divBy(*polDividend);
 
         // Check degrees
-        if (polRemainder.getDegree() > 0) {
+        if (polRemainder->getDegree() > 0) {
             ss.str("");
-            ss << "Degree of L(X)/(ZTS2(y)(X-y)) remainder is " << polRemainder.getDegree() << " and should be 0";
+            ss << "Degree of L(X)/(ZTS2(y)(X-y)) remainder is " << polRemainder->getDegree() << " and should be 0";
             throw std::runtime_error(ss.str());
         }
         if (polynomials["L"]->getDegree() >= 9 * zkey->domainSize + 17) {

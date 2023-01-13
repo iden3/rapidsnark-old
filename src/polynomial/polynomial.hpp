@@ -44,8 +44,6 @@ public:
 
     void setCoef(u_int64_t index, FrElement value);
 
-//    static to4T(buffer, domainSize, blindingFactors, Fr); //TODO return dues coses!!!!!!
-
     u_int64_t getLength() const;
 
     u_int64_t getDegree() const;
@@ -65,8 +63,8 @@ public:
     // Multiply current polynomial by the polynomial (X - value)
     void byXSubValue(FrElement &value);
 
-    // Euclidean division
-    Polynomial<Engine> divBy(Polynomial<Engine> &polynomial);
+    // Euclidean division, returns reminder polygon
+    Polynomial<Engine>* divBy(Polynomial<Engine> &polynomial);
 
     void divZh(u_int64_t domainSize);
 

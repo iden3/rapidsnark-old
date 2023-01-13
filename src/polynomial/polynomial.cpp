@@ -228,7 +228,7 @@ void Polynomial<Engine>::byXSubValue(FrElement &value) {
 
 // Euclidean division
 template<typename Engine>
-Polynomial<Engine> Polynomial<Engine>::divBy(Polynomial<Engine> &polynomial) {
+Polynomial<Engine>* Polynomial<Engine>::divBy(Polynomial<Engine> &polynomial) {
     u_int64_t degreeA = this->degree;
     u_int64_t degreeB = polynomial.degree;
 
@@ -253,7 +253,7 @@ Polynomial<Engine> Polynomial<Engine>::divBy(Polynomial<Engine> &polynomial) {
     fixDegree();
     polR->fixDegree();
 
-    return *polR;
+    return polR;
 }
 
 template<typename Engine>
