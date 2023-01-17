@@ -6,7 +6,7 @@ void Evaluations<Engine>::initialize(u_int64_t length) {
     fft = new FFT<typename Engine::Fr>(length);
 
     eval = new FrElement[length];
-    memset(eval, 0, sizeof(eval));
+    memset(eval, 0, length * sizeof(FrElement));
     this->length = length;
 }
 
@@ -24,19 +24,18 @@ Evaluations<Engine>::Evaluations(Engine &_E, FrElement *evaluations) : E(_E) {
 }
 
 template<typename Engine>
-Evaluations<Engine>::Evaluations(Engine &_E, Polynomial<Engine> &polynomial) : E(_E) {
-    u_int64_t extendedLength = polynomial.getLength() * 4;
-
+Evaluations<Engine>::Evaluations(Engine &_E, Polynomial<Engine> &polynomial, u_int32_t extensionLength) : E(_E) {
     //Extend polynomial
-    initialize(extendedLength);
+    initialize(extensionLength);
 
-#pragma omp parallel for
+    //TODO improve performance
+    #pragma omp parallel for
     for (int64_t index = 0; index < polynomial.getDegree() + 1; ++index) {
         eval[index] = polynomial.getCoef(index);
     }
 
     //Coefficients to evaluations
-    fft->fft(eval, extendedLength);
+    fft->fft(eval, extensionLength);
 }
 
 template<typename Engine>

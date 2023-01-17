@@ -16,6 +16,9 @@
 #include "groth16.hpp"
 #include "fflonk_prover.hpp"
 #include "zkey.hpp"
+#include "logger.hpp"
+
+using namespace CPlusPlusLogging;
 
 using json = nlohmann::json;
 
@@ -29,6 +32,9 @@ int main(int argc, char **argv) {
         std::cerr << "Usage: prove <circuit.zkey> <witness.wtns> <proof.json> <public.json>\n";
         return -1;
     }
+
+    Logger::getInstance()->enableConsoleLogging();
+    Logger::getInstance()->updateLogLevel(LOG_LEVEL_DEBUG);
 
     mpz_t altBbn128r;
 
@@ -60,6 +66,7 @@ int main(int argc, char **argv) {
             file.open(publicFilename);
             file << publicSignalsJson;
             file.close();
+            LOG_TRACE("/0");
 
         } else if (Zkey::GROTH16_PROTOCOL_ID == protocolId) {
             auto zkeyHeader = ZKeyUtils::loadHeader(zkey.get());
@@ -113,13 +120,13 @@ int main(int argc, char **argv) {
             publicFile << jsonPublic;
             publicFile.close();
         }
-
     } catch (std::exception& e) {
         mpz_clear(altBbn128r);
         std::cerr << e.what() << '\n';
         return -1;
     }
-
+LOG_TRACE("/1");
     mpz_clear(altBbn128r);
+LOG_TRACE("/2");
     exit(EXIT_SUCCESS);
 }

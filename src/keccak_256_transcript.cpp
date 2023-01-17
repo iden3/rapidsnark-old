@@ -1,4 +1,5 @@
 #include "keccak_256_transcript.hpp"
+#include <cstring>
 #include "keccak_wrapper.hpp"
 
 
@@ -31,19 +32,18 @@ void Keccak256Transcript<Engine>::reset() {
 
 template<typename Engine>
 typename Engine::FrElement Keccak256Transcript<Engine>::getChallenge() {
-
-    u_int8_t data[E.fr.bytes() * fieldElements + E.g1.F.bytes() * groupElements * 2 * 3];
+    const u_int32_t length = E.fr.bytes() * fieldElements + E.g1.F.bytes() * groupElements * 2 * 3;
+    u_int8_t data[length];
     u_int64_t bytes = 0;
 
-    memset(data, 0, sizeof(data));
-
+    memset(data, 0, length);
     for (int i = 0; i < this->elements.size(); i++) {
         if(FrType == elements[i].type) {
-            FrElement element = std::any_cast<FrElement>(elements[i]);
+            FrElement element = std::any_cast<FrElement>(elements[i].element);
             bytes += E.fr.toRprBE(element, data + bytes, E.fr.bytes());
         } else {
-            G1Point element = std::any_cast<G1Point>(elements[i]);
-            bytes += toRprBE(element, data, bytes, sizeof(elements[i]));
+            G1Point element = std::any_cast<G1Point>(elements[i].element);
+            bytes += toRprBE(element, data, bytes, sizeof(element));
         }
     }
 

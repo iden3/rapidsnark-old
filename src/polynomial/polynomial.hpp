@@ -18,19 +18,19 @@ class Polynomial {
     Engine &E;
     FFT<typename Engine::Fr> *fft;
 
-    void initialize(u_int64_t length);
+    void initialize(u_int64_t length, u_int64_t blindLength = 0);
 
-    static Polynomial<Engine>* computeLagrangePolynomial(u_int64_t i, FrElement xArr[], FrElement yArr[]);
+    static Polynomial<Engine>* computeLagrangePolynomial(u_int64_t i, FrElement xArr[], FrElement yArr[], u_int32_t length);
 public:
     FrElement *coef;
 
-    Polynomial(Engine &_E, u_int64_t length);
+    Polynomial(Engine &_E, u_int64_t length, u_int64_t blindLength = 0);
 
     // From coefficients
-    Polynomial(Engine &_E, FrElement elements[]);
+    static Polynomial<Engine>* fromCoefficients(Engine &_E, FrElement *coefficients, u_int64_t length, u_int64_t blindLength = 0);
 
     // From evaluations
-    Polynomial(Engine &_E, FrElement elements[], u_int64_t domainSize, u_int64_t nBlindCoefficients = 0);
+    static Polynomial<Engine>* fromEvaluations(Engine &_E, FrElement *evaluations, u_int64_t length, u_int64_t blindLength = 0);
 
     ~Polynomial();
 
@@ -38,7 +38,7 @@ public:
 
     bool isEqual(const Polynomial<Engine> &other) const;
 
-    void blindCoefficients(FrElement blindingFactors[]);
+    void blindCoefficients(FrElement blindingFactors[], u_int32_t length);
 
     typename Engine::FrElement getCoef(u_int64_t index) const;
 
@@ -70,9 +70,9 @@ public:
 
     void byX();
 
-    static Polynomial<Engine>* lagrangePolynomialInterpolation(FrElement xArr[], FrElement yArr[]);
+    static Polynomial<Engine>* lagrangePolynomialInterpolation(FrElement xArr[], FrElement yArr[], u_int32_t length);
 
-    static Polynomial<Engine>* zerofierPolynomial(FrElement xArr[]);
+    static Polynomial<Engine>* zerofierPolynomial(FrElement xArr[], u_int32_t length);
 
     void print();
 };

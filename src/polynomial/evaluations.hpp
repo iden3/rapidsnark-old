@@ -25,7 +25,7 @@ public:
 
     Evaluations(Engine &_E, FrElement *evaluations);
 
-    Evaluations(Engine &_E, Polynomial<Engine> &polynomial);
+    Evaluations(Engine &_E, Polynomial<Engine> &polynomial, u_int32_t extensionLength);
 
     ~Evaluations();
 

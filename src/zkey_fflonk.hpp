@@ -33,7 +33,6 @@ namespace Zkey {
         u_int32_t nVars;
         u_int32_t nPublic;
         u_int32_t domainSize;
-        u_int32_t power;
         u_int32_t nAdditions;
         u_int32_t nConstraints;
 

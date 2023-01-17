@@ -117,7 +117,7 @@ void Dump<Engine>::dump(const std::string &label, typename Engine::G1Point &poin
 }
 
 template <typename Engine>
-std::string Dump<Engine>::getColorLiteHash(const std::string &data)
+std::string Dump<Engine>::getColorLiteHash(std::string &data)
 {
     std::string lhash = getLiteHash(data);
 
@@ -131,7 +131,7 @@ std::string Dump<Engine>::getColorLiteHash(const std::string &data)
 }
 
 template <typename Engine>
-std::string Dump<Engine>::getLiteHash(const std::string &data)
+std::string Dump<Engine>::getLiteHash(std::string &data)
 {
     std::string hash = getHash(data.c_str(), data.length());
     return hash.substr(0, 4) + hash.substr(28, 4);
@@ -141,7 +141,7 @@ template <typename Engine>
 std::string Dump<Engine>::getHash(const void *data, u_int32_t len)
 {
     unsigned char digest[32];
-    unsigned int outLen = keccak(data, len, digest, sizeof(digest));
+    unsigned int outLen = keccak((void *)data, len, digest, sizeof(digest));
 
     std::stringstream ss;
     for (int i=0; i<outLen; i++) {

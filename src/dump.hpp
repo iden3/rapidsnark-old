@@ -18,15 +18,17 @@ namespace Dump {
         void dump(const std::string &label, std::vector<typename Engine::G1PointAffine> &points);
         void dump(const std::string &label, typename Engine::G1PointAffine &point);
         void dump(const std::string &label, typename Engine::G1Point &point);
-        std::string getColorLiteHash(const std::string &data);
+        std::string getColorLiteHash(std::string &data);
+        bool showValues;
 
       protected:
         Engine &E;
-        bool showValues;
         void setShowValues ( bool value ) { showValues = value; };
-        std::string getLiteHash(const std::string &data);
+        std::string getLiteHash(std::string &data);
         std::string getHash(const void *data, u_int32_t len);
     };
 }
+
+#include "dump.cpp"
 
 #endif

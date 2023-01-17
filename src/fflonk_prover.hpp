@@ -12,6 +12,7 @@
 #include "polynomial/evaluations.hpp"
 #include <nlohmann/json.hpp>
 #include "mul_z.hpp"
+#include "dump.hpp"
 
 using json = nlohmann::json;
 
@@ -23,14 +24,11 @@ namespace Fflonk {
         using G1Point = typename Engine::G1Point;
         using G1PointAffine = typename Engine::G1PointAffine;
 
+        Dump::Dump<Engine> *dump;
+
         Engine &E;
         FFT<typename Engine::Fr> *fft;
         MulZ<Engine> *mulZ;
-
-        // To compute in parallel we will precompute all the omegas
-        // We're using Fr.w[zkey,power+2] and Fr.w[zkey,power+4], we'll only compute the last one and
-        // when Fr.w[zkey,power+2] must be used we'll take one out of four.
-        FrElement *omegaBuffer;
 
         BinFileUtils::BinFile *fdZkey;
         BinFileUtils::BinFile *fdWtns;
@@ -40,11 +38,12 @@ namespace Fflonk {
         std::string curveName;
         size_t sDomain;
 
-        G1Point *PTau;
+        G1PointAffine *PTau;
 
         FrElement *buffWitness;
         FrElement *buffInternalWitness;
 
+        std::map<std::string, u_int32_t*> mapBuffers;
         std::map<std::string, FrElement*> buffers;
         std::map <std::string, Polynomial<Engine>*> polynomials;
         std::map <std::string, Evaluations<Engine>*> evaluations;
@@ -53,7 +52,7 @@ namespace Fflonk {
         std::map <std::string, FrElement> challenges;
         std::map<std::string, FrElement*> roots;
         FrElement blindingFactors[10];
-
+        G1Point C1, C2, W1, W2;
 
         SnarkProof<Engine> *proof;
     public:
@@ -109,9 +108,13 @@ namespace Fflonk {
 
         void computeZTS2();
 
-        FrElement getMontgomeryBatchedInverse();
+        void batchInverse(FrElement *elements, u_int64_t length);
 
-        G1Point multiExponentiation(const Polynomial<Engine> *polynomial, const std::string name);
+        FrElement* polynomialFromMontgomery(Polynomial<Engine> *polynomial);
+
+        G1Point multiExponentiation(Polynomial<Engine> *polynomial);
+
+        void printPol(std::string name, const Polynomial<Engine> *polynomial);
     };
 }
 
