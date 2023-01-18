@@ -139,10 +139,17 @@ namespace Fflonk {
             polynomials["Sigma2"] = new Polynomial<Engine>(E, zkey->domainSize);
             polynomials["Sigma3"] = new Polynomial<Engine>(E, zkey->domainSize);
 
+            int nThreads = omp_get_max_threads() / 2;
 
-            memcpy(polynomials["Sigma1"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION), sDomain);
-            memcpy(polynomials["Sigma2"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION), sDomain);
-            memcpy(polynomials["Sigma3"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION), sDomain);
+            ThreadUtils<Engine>::parcpy(polynomials["Sigma1"]->coef,
+                                        (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION),
+                                        sDomain, nThreads);
+            ThreadUtils<Engine>::parcpy(polynomials["Sigma2"]->coef,
+                                        (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION),
+                                        sDomain, nThreads);
+            ThreadUtils<Engine>::parcpy(polynomials["Sigma3"]->coef,
+                                        (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION),
+                                        sDomain, nThreads);
 
             polynomials["Sigma1"]->fixDegree();
             polynomials["Sigma2"]->fixDegree();
@@ -153,22 +160,15 @@ namespace Fflonk {
             evaluations["Sigma2"] = new Evaluations<Engine>(E, sDomain * 4);
             evaluations["Sigma3"] = new Evaluations<Engine>(E, sDomain * 4);
 
-            memcpy(evaluations["Sigma1"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION) + zkey->domainSize, sDomain * 4);
-            memcpy(evaluations["Sigma2"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION) + zkey->domainSize, sDomain * 4);
-            memcpy(evaluations["Sigma3"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION) + zkey->domainSize, sDomain * 4);
-//            int num_threads = omp_get_max_threads() / 2;
-//            ThreadUtils<Engine>::parcpy(evaluations["Sigma1"]->eval,
-//                                        (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION) + zkey->domainSize,
-//                                        zkey->domainSize * 4,
-//                                        num_threads);
-//            ThreadUtils<Engine>::parcpy(evaluations["Sigma2"]->eval,
-//                                        (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION) + zkey->domainSize,
-//                                        zkey->domainSize * 4,
-//                                        num_threads);
-//            ThreadUtils<Engine>::parcpy(evaluations["Sigma3"]->eval,
-//                                        (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION) + zkey->domainSize,
-//                                        zkey->domainSize * 4,
-//                                        num_threads);
+            ThreadUtils<Engine>::parcpy(evaluations["Sigma1"]->eval,
+                                        (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION) + zkey->domainSize,
+                                        sDomain * 4, nThreads);
+            ThreadUtils<Engine>::parcpy(evaluations["Sigma2"]->eval,
+                                        (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION) + zkey->domainSize,
+                                        sDomain * 4, nThreads);
+            ThreadUtils<Engine>::parcpy(evaluations["Sigma3"]->eval,
+                                        (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION) + zkey->domainSize,
+                                        sDomain * 4, nThreads);
 
             ss.str("");
             ss << "> Reading Section " << Zkey::ZKEY_FF_PTAU_SECTION << ". Powers of Tau";
@@ -180,8 +180,9 @@ namespace Fflonk {
             // it corresponds to the maximum SRS length needed, specifically to commit C2
             // notice that the reserved buffers size is zkey->domainSize * 16 * sG1 because a power of two buffer size is needed
             // the remaining buffer not filled from SRS are set to 0
-            memcpy(PTau, (G1Point *) fdZkey->getSectionData(Zkey::ZKEY_FF_PTAU_SECTION),
-                   (zkey->domainSize * 9 + 18) * sizeof(G1PointAffine));
+            ThreadUtils<Engine>::parcpy(this->PTau,
+                                        (G1PointAffine *) fdZkey->getSectionData(Zkey::ZKEY_FF_PTAU_SECTION),
+                                        (zkey->domainSize * 9 + 18) * sizeof(G1PointAffine), nThreads);
 
             // START FFLONK PROVER PROTOCOL
 
@@ -348,9 +349,16 @@ namespace Fflonk {
         memset(mapBuffers["C"], 0, byteLength);
 
         // Read zkey sections and fill the buffers
-        memcpy(mapBuffers["A"], (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_A_MAP_SECTION), byteLength);
-        memcpy(mapBuffers["B"], (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_B_MAP_SECTION), byteLength);
-        memcpy(mapBuffers["C"], (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_C_MAP_SECTION), byteLength);
+        int nThreads = omp_get_max_threads() / 2;
+        ThreadUtils<Engine>::parcpy(mapBuffers["A"],
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_A_MAP_SECTION),
+                                    byteLength, nThreads);
+        ThreadUtils<Engine>::parcpy(mapBuffers["B"],
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_B_MAP_SECTION),
+                                    byteLength, nThreads);
+        ThreadUtils<Engine>::parcpy(mapBuffers["C"],
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_C_MAP_SECTION),
+                                    byteLength, nThreads);
 
         #pragma omp parallel
         {
@@ -405,13 +413,13 @@ namespace Fflonk {
         std::ostringstream ss;
         ss << "··· Computing " << polName << " ifft";
         LOG_TRACE(ss);
-        polynomials[polName] = Polynomial<Engine>::fromEvaluations(E, buffers[polName], zkey->domainSize, bFactorsLen);
+        polynomials[polName] = Polynomial<Engine>::fromEvaluations(E, fft, buffers[polName], zkey->domainSize, bFactorsLen);
 
         // Compute the extended evaluations of the wire polynomials
         ss.str("");
         ss << "··· Computing " << polName << " fft";
         LOG_TRACE(ss);
-        evaluations[polName] = new Evaluations<Engine>(E, *polynomials[polName], zkey->domainSize * 4);
+        evaluations[polName] = new Evaluations<Engine>(E, fft, *polynomials[polName], zkey->domainSize * 4);
 
         // Blind polynomial coefficients with blinding scalars blindingFactors
         polynomials[polName]->blindCoefficients(blindingFactors, bFactorsLen);
@@ -434,21 +442,34 @@ namespace Fflonk {
         evaluations["QC"] = new Evaluations<Engine>(E, sDomain * 4);
 
         // Read Q's evaluations from zkey file
-        memcpy(evaluations["QL"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION) + zkey->domainSize, sDomain * 4);
-        memcpy(evaluations["QR"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QR_SECTION) + zkey->domainSize, sDomain * 4);
-        memcpy(evaluations["QM"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QM_SECTION) + zkey->domainSize, sDomain * 4);
-        memcpy(evaluations["QO"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QO_SECTION) + zkey->domainSize, sDomain * 4);
-        memcpy(evaluations["QC"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QC_SECTION) + zkey->domainSize, sDomain * 4);
+        int nThreads = omp_get_max_threads() / 2;
+        ThreadUtils<Engine>::parcpy(evaluations["QL"]->eval,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION) + zkey->domainSize,
+                                    sDomain * 4, nThreads);
+        ThreadUtils<Engine>::parcpy(evaluations["QR"]->eval,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QR_SECTION) + zkey->domainSize,
+                                    sDomain * 4, nThreads);
+        ThreadUtils<Engine>::parcpy(evaluations["QM"]->eval,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QM_SECTION) + zkey->domainSize,
+                                    sDomain * 4, nThreads);
+        ThreadUtils<Engine>::parcpy(evaluations["QO"]->eval,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QO_SECTION) + zkey->domainSize,
+                                    sDomain * 4, nThreads);
+        ThreadUtils<Engine>::parcpy(evaluations["QC"]->eval,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QC_SECTION) + zkey->domainSize,
+                                    sDomain * 4, nThreads);
 
         // Read Lagrange polynomials & evaluations from zkey file
         evaluations["lagrange1"] = new Evaluations<Engine>(E, sDomain * 4);
-        memcpy(evaluations["lagrange1"]->eval, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_LAGRANGE_SECTION) + zkey->domainSize, sDomain * 4);
+        ThreadUtils<Engine>::parcpy(evaluations["lagrange1"]->eval,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_LAGRANGE_SECTION) + zkey->domainSize,
+                                    sDomain * 4, nThreads);
 
         // Reserve memory for buffers T0 and T0z
         buffers["T0"] =  new FrElement[zkey->domainSize * 4];
         buffers["T0z"] =  new FrElement[zkey->domainSize * 4];
 
-        //#pragma omp parallel for
+        #pragma omp parallel for
         for (u_int32_t i = 0; i < zkey->domainSize * 4; i++) {
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
@@ -513,14 +534,14 @@ namespace Fflonk {
 
         // Compute the coefficients of the polynomial T0(X) from buffers.T0
         LOG_TRACE("··· Computing T0 ifft");
-        polynomials["T0"] = Polynomial<Engine>::fromEvaluations(E, buffers["T0"], zkey->domainSize * 4);
+        polynomials["T0"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T0"], zkey->domainSize * 4);
 
         // Divide the polynomial T0 by Z_H(X)
         polynomials["T0"]->divZh(zkey->domainSize);
 
         // Compute the coefficients of the polynomial T0z(X) from buffers.T0z
         LOG_TRACE("··· Computing T0z ifft");
-        polynomials["T0z"] = Polynomial<Engine>::fromEvaluations(E, buffers["T0z"], zkey->domainSize * 4);
+        polynomials["T0z"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T0z"], zkey->domainSize * 4);
 
         // Add the polynomial T0z to T0 to get the final polynomial T0
         polynomials["T0"]->add(*polynomials["T0z"]);
@@ -641,6 +662,7 @@ namespace Fflonk {
         LOG_TRACE("··· Computing Z evaluations");
 
         std::ostringstream ss;
+        //#pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize; i++) {
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
@@ -708,10 +730,10 @@ namespace Fflonk {
 
         // Compute polynomial coefficients z(X) from buffers.Z
         LOG_TRACE("··· Computing Z ifft");
-        polynomials["Z"] = Polynomial<Engine>::fromEvaluations(E, buffers["Z"], zkey->domainSize, 3);
+        polynomials["Z"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["Z"], zkey->domainSize, 3);
 
         // Compute extended evaluations of z(X) polynomial
-        evaluations["Z"] = new Evaluations<Engine>(E, *polynomials["Z"], zkey->domainSize * 4);
+        evaluations["Z"] = new Evaluations<Engine>(E, fft, *polynomials["Z"], zkey->domainSize * 4);
 
         // Blind z(X) polynomial coefficients with blinding scalars b
         FrElement bFactors[3] = {blindingFactors[9], blindingFactors[8], blindingFactors[7]};
@@ -733,6 +755,7 @@ namespace Fflonk {
         LOG_TRACE("··· Computing T1 evaluations");
 
         std::ostringstream ss;
+        #pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize * 4; i++) {
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
@@ -760,14 +783,14 @@ namespace Fflonk {
 
         // Compute the coefficients of the polynomial T1(X) from buffers.T1
         LOG_TRACE("··· Computing T1 ifft");
-        polynomials["T1"] = Polynomial<Engine>::fromEvaluations(E, buffers["T1"], zkey->domainSize * 4);
+        polynomials["T1"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T1"], zkey->domainSize * 4);
 
         // Divide the polynomial T1 by Z_H(X)
         polynomials["T1"]->divZh(zkey->domainSize);
 
         // Compute the coefficients of the polynomial T1z(X) from buffers.T1z
         LOG_TRACE("··· Computing T1z ifft");
-        polynomials["T1z"] = Polynomial<Engine>::fromEvaluations(E, buffers["T1z"], zkey->domainSize * 4);
+        polynomials["T1z"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T1z"], zkey->domainSize * 4);
 
         // Add the polynomial T0z to T0 to get the final polynomial T0
         polynomials["T1"]->add(*polynomials["T1z"]);
@@ -790,6 +813,7 @@ namespace Fflonk {
         LOG_TRACE("··· Computing T2 evaluations");
 
         std::ostringstream ss;
+        #pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize * 4; i++) {
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
@@ -857,14 +881,14 @@ namespace Fflonk {
 
         // Compute the coefficients of the polynomial T2(X) from buffers.T2
         LOG_TRACE("··· Computing T2 ifft");
-        polynomials["T2"] = Polynomial<Engine>::fromEvaluations(E, buffers["T2"], zkey->domainSize * 4);
+        polynomials["T2"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T2"], zkey->domainSize * 4);
 
         // Divide the polynomial T2 by Z_H(X)
         polynomials["T2"]->divZh(zkey->domainSize);
 
         // Compute the coefficients of the polynomial T2z(X) from buffers.T2z
         LOG_TRACE("··· Computing T2z ifft");
-        polynomials["T2z"] = Polynomial<Engine>::fromEvaluations(E, buffers["T2z"], zkey->domainSize * 4);
+        polynomials["T2z"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T2z"], zkey->domainSize * 4);
 
         // Add the polynomial T2z to T2 to get the final polynomial T2
         polynomials["T2"]->add(*polynomials["T2z"]);
@@ -903,10 +927,11 @@ namespace Fflonk {
         polynomials["C2"] = new Polynomial<Engine>(E, lengthBuffer);
 
         std::ostringstream ss;
+        #pragma omp parallel for
         for (u_int64_t i = 0; i < maxLength; i++) {
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
-                ss << "    C2 coefficient " << i / maxLength;
+                ss << "    C2 coefficient " << i << "/" << maxLength;
                 LOG_TRACE(ss);
             }
 
@@ -984,11 +1009,22 @@ namespace Fflonk {
         polynomials["QC"] = new Polynomial<Engine>(E, zkey->domainSize);
 
         // Read Q's evaluations from zkey file
-        memcpy(polynomials["QL"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION), sDomain);
-        memcpy(polynomials["QR"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QR_SECTION), sDomain);
-        memcpy(polynomials["QM"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QM_SECTION), sDomain);
-        memcpy(polynomials["QO"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QO_SECTION), sDomain);
-        memcpy(polynomials["QC"]->coef, (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QC_SECTION), sDomain);
+        int nThreads = omp_get_max_threads() / 2;
+        ThreadUtils<Engine>::parcpy(polynomials["QL"]->coef,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION),
+                                    sDomain, nThreads);
+        ThreadUtils<Engine>::parcpy(polynomials["QR"]->coef,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QR_SECTION),
+                                    sDomain, nThreads);
+        ThreadUtils<Engine>::parcpy(polynomials["QM"]->coef,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QM_SECTION),
+                                    sDomain, nThreads);
+        ThreadUtils<Engine>::parcpy(polynomials["QO"]->coef,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QO_SECTION),
+                                    sDomain, nThreads);
+        ThreadUtils<Engine>::parcpy(polynomials["QC"]->coef,
+                                    (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QC_SECTION),
+                                    sDomain, nThreads);
 
         polynomials["QL"]->fixDegree();
         polynomials["QR"]->fixDegree();
@@ -1071,7 +1107,7 @@ namespace Fflonk {
         LOG_TRACE("> Computing W1 multi exponentiation");
         W1 = multiExponentiation(polynomials["F"]);
         proof->addPolynomialCommitment("W1", W1);
-dump->dump("[W1]_1", W1);
+        dump->dump("[W1]_1", W1);
     }
 
     template<typename Engine>
@@ -1118,13 +1154,14 @@ dump->dump("[W1]_1", W1);
 
         LOG_TRACE("··· Computing C1 & C2 fft");
 
-        evaluations["C1"] = new Evaluations<Engine>(E, *polynomials["C1"], zkey->domainSize * 16);
-        evaluations["C2"] = new Evaluations<Engine>(E, *polynomials["C2"], zkey->domainSize * 16);
+        evaluations["C1"] = new Evaluations<Engine>(E, fft, *polynomials["C1"], zkey->domainSize * 16);
+        evaluations["C2"] = new Evaluations<Engine>(E, fft, *polynomials["C2"], zkey->domainSize * 16);
 
         LOG_TRACE("··· Computing F evaluations");
 
         // COMPUTE F(X)
         std::ostringstream ss;
+        #pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize * 16; i++) {
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
@@ -1161,7 +1198,7 @@ dump->dump("[W1]_1", W1);
         }
 
         LOG_TRACE("··· Computing F ifft");
-        polynomials["F"] = Polynomial<Engine>::fromEvaluations(E, buffers["F"], zkey->domainSize * 16);
+        polynomials["F"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["F"], zkey->domainSize * 16);
 
         // Check degree
         if (polynomials["F"]->getDegree() >= 9 * zkey->domainSize + 22) {
@@ -1265,12 +1302,13 @@ dump->dump("[W1]_1", W1);
 
         LOG_TRACE("··· Computing F fft");
 
-        evaluations["F"] = new Evaluations<Engine>(E, *polynomials["F"], zkey->domainSize * 16);
+        evaluations["F"] = new Evaluations<Engine>(E, fft, *polynomials["F"], zkey->domainSize * 16);
 
         LOG_TRACE("··· Computing L evaluations");
 
         // Set initial omega
         std::ostringstream ss;
+        #pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize * 16; i++) {
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
@@ -1307,7 +1345,7 @@ dump->dump("[W1]_1", W1);
         }
 
         LOG_TRACE("··· Computing L ifft");
-        polynomials["L"] = Polynomial<Engine>::fromEvaluations(E, buffers["L"], zkey->domainSize * 16);
+        polynomials["L"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["L"], zkey->domainSize * 16);
 
         // Check degree
         if (polynomials["L"]->getDegree() >= 9 * zkey->domainSize + 18) {
@@ -1357,7 +1395,7 @@ dump->dump("[W1]_1", W1);
 
         FrElement *result = new FrElement[length];
 
-//#pragma omp parallel for
+        #pragma omp parallel for
         for (u_int32_t index = 0; index < length; ++index) {
             E.fr.fromMontgomery(result[index], polynomial->coef[index]);
         }

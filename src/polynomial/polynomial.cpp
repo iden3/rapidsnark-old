@@ -1,4 +1,5 @@
 #include "polynomial.hpp"
+#include "thread_utils.hpp"
 
 #include "logger.hpp"
 
@@ -6,8 +7,6 @@ using namespace CPlusPlusLogging;
 
 template<typename Engine>
 void Polynomial<Engine>::initialize(u_int64_t length, u_int64_t blindLength) {
-    fft = new FFT<typename Engine::Fr>(length);
-
     u_int64_t totalLength = length + blindLength;
     coef = new FrElement[totalLength];
     memset(coef, 0, totalLength * sizeof(FrElement));
@@ -24,19 +23,22 @@ template<typename Engine>
 Polynomial<Engine>* Polynomial<Engine>::fromCoefficients(Engine &_E, FrElement* coefficients, u_int64_t length, u_int64_t blindLength) {
     Polynomial<Engine>* pol = new Polynomial<Engine>(_E, length, blindLength);
 
-    memcpy(pol->coef, coefficients, length * sizeof(FrElement));
+    //memcpy(pol->coef, coefficients, length * sizeof(FrElement));
+    int nThreads = omp_get_max_threads() / 2;
+    ThreadUtils<Engine>::parcpy(pol->coef, coefficients, length * sizeof(FrElement), nThreads);
     pol->fixDegree();
 
     return pol;
 }
 
 template<typename Engine>
-Polynomial<Engine>* Polynomial<Engine>::fromEvaluations(Engine &_E, FrElement* evaluations, u_int64_t length, u_int64_t blindLength) {
+Polynomial<Engine>* Polynomial<Engine>::fromEvaluations(Engine &_E, FFT<typename Engine::Fr> *fft, FrElement* evaluations, u_int64_t length, u_int64_t blindLength) {
     Polynomial<Engine>* pol = new Polynomial<Engine>(_E, length, blindLength);
 
-    memcpy(pol->coef, evaluations, length * sizeof(FrElement));
+    int nThreads = omp_get_max_threads() / 2;
+    ThreadUtils<Engine>::parcpy(pol->coef, evaluations, length * sizeof(FrElement), nThreads);
 
-    pol->fft->ifft(pol->coef, length);
+    fft->ifft(pol->coef, length);
 
     pol->fixDegree();
 
@@ -213,7 +215,8 @@ void Polynomial<Engine>::byXSubValue(FrElement &value) {
     Polynomial<Engine> *pol = new Polynomial<Engine>(E, length);
 
     // Step 0: Set current coefficients to the new buffer shifted one position
-    memcpy(&pol->coef[1], this->coef, (resize ? this->length : this->length -1)  * sizeof(FrElement));
+    int nThreads = omp_get_max_threads() / 2;
+    ThreadUtils<Engine>::parcpy(&pol->coef[1], this->coef, (resize ? this->length : this->length -1)  * sizeof(FrElement), nThreads);
     pol->fixDegree();
 
     // Step 1: multiply each coefficient by (-value)
@@ -276,13 +279,16 @@ void Polynomial<Engine>::divZh(u_int64_t domainSize) {
 template<typename Engine>
 void Polynomial<Engine>::byX() {
     bool resize = E.fr.neq(E.fr.zero, this->coef[this->length - 1]);
+    int nThreads = omp_get_max_threads() / 2;
 
     if (resize) {
         FrElement *newCoef = new FrElement[this->length + 1];
-        memcpy(newCoef[1], coef[0], sizeof(coef));
+        ThreadUtils<Engine>::parcpy(newCoef[1], coef[0], sizeof(coef), nThreads);
+//        memcpy(newCoef[1], coef[0], sizeof(coef));
         coef = newCoef;
     } else {
-        memcpy(coef[1], coef[0], sizeof(coef));
+        ThreadUtils<Engine>::parcpy(coef[1], coef[0], sizeof(coef), nThreads);
+//        memcpy(coef[1], coef[0], sizeof(coef));
     }
 
     coef[0] = E.fr.zero;

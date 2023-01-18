@@ -16,7 +16,6 @@ class Polynomial {
     u_int64_t degree;
 
     Engine &E;
-    FFT<typename Engine::Fr> *fft;
 
     void initialize(u_int64_t length, u_int64_t blindLength = 0);
 
@@ -30,7 +29,7 @@ public:
     static Polynomial<Engine>* fromCoefficients(Engine &_E, FrElement *coefficients, u_int64_t length, u_int64_t blindLength = 0);
 
     // From evaluations
-    static Polynomial<Engine>* fromEvaluations(Engine &_E, FrElement *evaluations, u_int64_t length, u_int64_t blindLength = 0);
+    static Polynomial<Engine>* fromEvaluations(Engine &_E, FFT<typename Engine::Fr> *fft, FrElement *evaluations, u_int64_t length, u_int64_t blindLength = 0);
 
     ~Polynomial();
 

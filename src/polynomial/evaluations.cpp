@@ -1,10 +1,9 @@
 #include "evaluations.hpp"
+#include "thread_utils.hpp"
 
 
 template<typename Engine>
 void Evaluations<Engine>::initialize(u_int64_t length) {
-    fft = new FFT<typename Engine::Fr>(length);
-
     eval = new FrElement[length];
     memset(eval, 0, length * sizeof(FrElement));
     this->length = length;
@@ -16,15 +15,18 @@ Evaluations<Engine>::Evaluations(Engine &_E, u_int64_t length) : E(_E) {
 }
 
 template<typename Engine>
-Evaluations<Engine>::Evaluations(Engine &_E, FrElement *evaluations) : E(_E) {
-    u_int64_t len = sizeof(*evaluations) / sizeof(Engine::FrElement);
-    initialize(len);
+Evaluations<Engine>::Evaluations(Engine &_E, FrElement *evaluations, u_int64_t length) : E(_E) {
+    initialize(length);
 
-    memcpy(eval, evaluations, sizeof(eval));
+    int nThreads = omp_get_max_threads() / 2;
+    ThreadUtils<Engine>::parcpy(eval,
+                                evaluations,
+                                length * sizeof(FrElement), nThreads);
+
 }
 
 template<typename Engine>
-Evaluations<Engine>::Evaluations(Engine &_E, Polynomial<Engine> &polynomial, u_int32_t extensionLength) : E(_E) {
+Evaluations<Engine>::Evaluations(Engine &_E, FFT<typename Engine::Fr> *fft, Polynomial<Engine> &polynomial, u_int32_t extensionLength) : E(_E) {
     //Extend polynomial
     initialize(extensionLength);
 

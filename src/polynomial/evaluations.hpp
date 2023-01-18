@@ -14,7 +14,6 @@ class Evaluations {
     u_int64_t length;
 
     Engine &E;
-    FFT<typename Engine::Fr> *fft;
 
     void initialize(u_int64_t length);
 
@@ -23,9 +22,9 @@ public:
 
     Evaluations(Engine &_E, u_int64_t length);
 
-    Evaluations(Engine &_E, FrElement *evaluations);
+    Evaluations(Engine &_E, FrElement *evaluations, u_int64_t length);
 
-    Evaluations(Engine &_E, Polynomial<Engine> &polynomial, u_int32_t extensionLength);
+    Evaluations(Engine &_E, FFT<typename Engine::Fr> *fft, Polynomial<Engine> &polynomial, u_int32_t extensionLength);
 
     ~Evaluations();
 
