@@ -64,19 +64,25 @@ template<typename Engine>
 json SnarkProof<Engine>::toJson() {
     json jsonProof;
 
+    jsonProof["polynomials"] = {};
+    jsonProof["evaluations"] = {};
+
     for (auto &[key, point]: this->polynomialCommitments) {
-        jsonProof[key] = {};
+        G1PointAffine tmp;
+        E.g1.copy(tmp, point);
 
-        std::string x = E.f1.toString(point.x);
-        std::string y = E.f1.toString(point.y);
+        jsonProof["polynomials"][key] = {};
 
-        jsonProof[key].push_back(x);
-        jsonProof[key].push_back(y);
-        jsonProof[key].push_back("1");
+        std::string x = E.f1.toString(tmp.x);
+        std::string y = E.f1.toString(tmp.y);
+
+        jsonProof["polynomials"][key].push_back(x);
+        jsonProof["polynomials"][key].push_back(y);
+        jsonProof["polynomials"][key].push_back("1");
     }
 
     for (auto &[key, element]: this->evaluationCommitments) {
-        jsonProof[key] = E.fr.toString(element);
+        jsonProof["evaluations"][key] = E.fr.toString(element);
     }
 
     jsonProof["protocol"] = this->protocol;

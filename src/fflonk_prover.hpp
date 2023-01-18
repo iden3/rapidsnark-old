@@ -13,8 +13,10 @@
 #include <nlohmann/json.hpp>
 #include "mul_z.hpp"
 #include "dump.hpp"
+#include <chrono>
 
 using json = nlohmann::json;
+using namespace std::chrono;
 
 namespace Fflonk {
 
@@ -25,9 +27,15 @@ namespace Fflonk {
         using G1PointAffine = typename Engine::G1PointAffine;
 
         Dump::Dump<Engine> *dump;
+        struct ProcessingTime {
+            std::string label;
+            time_point<std::chrono::high_resolution_clock> duration;
+            ProcessingTime(std::string label, time_point<std::chrono::high_resolution_clock> duration) : label(label), duration(duration){}
+        };
+        std::vector<ProcessingTime> processingTime;
 
         Engine &E;
-        FFT<typename Engine::Fr> *fft;
+        FFT<typename Engine::Fr> *fft=NULL;
         MulZ<Engine> *mulZ;
 
         BinFileUtils::BinFile *fdZkey;
@@ -52,7 +60,6 @@ namespace Fflonk {
         std::map <std::string, FrElement> challenges;
         std::map<std::string, FrElement*> roots;
         FrElement blindingFactors[10];
-        G1Point C1, C2, W1, W2;
 
         SnarkProof<Engine> *proof;
     public:
@@ -111,6 +118,12 @@ namespace Fflonk {
         void batchInverse(FrElement *elements, u_int64_t length);
 
         FrElement* polynomialFromMontgomery(Polynomial<Engine> *polynomial);
+
+        FrElement getMontgomeryBatchedInverse();
+
+        FrElement computeLiS1(u_int32_t i);
+
+        FrElement computeLiS2(u_int32_t i);
 
         G1Point multiExponentiation(Polynomial<Engine> *polynomial);
 

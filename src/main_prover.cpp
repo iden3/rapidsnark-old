@@ -47,15 +47,18 @@ int main(int argc, char **argv) {
         std::string proofFilename = argv[3];
         std::string publicFilename = argv[4];
 
+        LOG_TRACE("> Opening zkey file");
         auto zkey = BinFileUtils::openExisting(zkeyFilename, "zkey", 1);
 
         const int protocolId = Zkey::getProtocolIdFromZkey(zkey.get());
 
+        LOG_TRACE("> Opening wtns file");
         auto wtns = BinFileUtils::openExisting(wtnsFilename, "wtns", 2);
 
         if (Zkey::FFLONK_PROTOCOL_ID == protocolId) {
 
             auto prover = new Fflonk::FflonkProver<AltBn128::Engine>(AltBn128::Engine::engine);
+
             auto [proofJson, publicSignalsJson] = prover->prove(zkey.get(), wtns.get());
 
             std::ofstream file;
@@ -66,8 +69,6 @@ int main(int argc, char **argv) {
             file.open(publicFilename);
             file << publicSignalsJson;
             file.close();
-            LOG_TRACE("/0");
-
         } else if (Zkey::GROTH16_PROTOCOL_ID == protocolId) {
             auto zkeyHeader = ZKeyUtils::loadHeader(zkey.get());
 
@@ -125,8 +126,6 @@ int main(int argc, char **argv) {
         std::cerr << e.what() << '\n';
         return -1;
     }
-LOG_TRACE("/1");
     mpz_clear(altBbn128r);
-LOG_TRACE("/2");
     exit(EXIT_SUCCESS);
 }

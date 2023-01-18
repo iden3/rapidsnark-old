@@ -11,6 +11,7 @@ template<typename Engine>
 class SnarkProof {
     using FrElement = typename Engine::FrElement;
     using G1Point = typename Engine::G1Point;
+    using G1PointAffine = typename Engine::G1PointAffine;
 
     Engine &E;
     std::string protocol;
