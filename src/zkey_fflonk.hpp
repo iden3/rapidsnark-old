@@ -4,7 +4,8 @@
 #include <gmp.h>
 
 namespace Zkey {
-    const int ZKEY_FF_NSECTIONS = 16;
+    const int ZKEY_FF_NSECTIONS = 17;
+
     const int ZKEY_FF_HEADER_SECTION = 2;
     const int ZKEY_FF_ADDITIONS_SECTION = 3;
     const int ZKEY_FF_A_MAP_SECTION = 4;
@@ -20,6 +21,7 @@ namespace Zkey {
     const int ZKEY_FF_SIGMA3_SECTION = 14;
     const int ZKEY_FF_LAGRANGE_SECTION = 15;
     const int ZKEY_FF_PTAU_SECTION = 16;
+    const int ZKEY_FF_C0_SECTION = 17;
 
     class FflonkZkeyHeader  {
     public:
@@ -40,8 +42,10 @@ namespace Zkey {
         void *k2;
         void *w3;
         void *w4;
+        void *w8;
         void *wr;
         void *X2;
+        void *C0;
 
         FflonkZkeyHeader();
 

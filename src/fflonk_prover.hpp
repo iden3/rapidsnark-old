@@ -102,6 +102,8 @@ namespace Fflonk {
         void computeC2();
 
         //ROUND 4 functions
+        void computeR0();
+
         void computeR1();
 
         void computeR2();

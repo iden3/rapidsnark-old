@@ -109,11 +109,11 @@ function compile() {
         " ../src/zkey_fflonk.cpp"+
         " ../src/curve_utils.cpp"+
         " ../src/wtns_utils.cpp"+
+        " ../src/keccak_wrapper.cpp"+
         // " ../src/snark_proof.cpp"+
         //" ../src/polynomial/polynomial.cpp"+
         //" ../src/polynomial/evaluations.cpp"+
         // " ../src/keccak_256_transcript.cpp"+
-        " ../src/dump.cpp"+
         " ../src/logger.cpp"+
         " ../depends/ffiasm/c/misc.cpp"+
         " ../depends/ffiasm/c/naf.cpp"+
