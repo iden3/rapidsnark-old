@@ -1128,11 +1128,9 @@ namespace Fflonk {
         LOG_TRACE(ss);
 
         // STEP 4.2 - Compute F(X)
-        LOG_TRACE("> Reading R0 polynomial");
+        LOG_TRACE("> Reading C0 polynomial");
         polynomials["C0"] = new Polynomial<Engine>(E, zkey->domainSize * 8);
-
         int nThreads = omp_get_max_threads() / 2;
-
         ThreadUtils::parcpy(polynomials["C0"]->coef,
                             (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_C0_SECTION),
                             sDomain * 8, nThreads);
@@ -1250,7 +1248,7 @@ namespace Fflonk {
     void FflonkProver<Engine>::computeF() {
         buffers["F"] = new FrElement[zkey->domainSize * 16];
 
-        LOG_TRACE("··· Computing C0 fft");
+        LOG_TRACE("··· Reading C0 evaluations");
         evaluations["C0"] = new Evaluations<Engine>(E, zkey->domainSize * 16);
         int nThreads = omp_get_max_threads() / 2;
         ThreadUtils::parcpy(evaluations["C0"]->eval,
@@ -1300,7 +1298,7 @@ namespace Fflonk {
             for (uint i = 1; i < 3; i++) {
                 preF2 = E.fr.mul(preF2, E.fr.sub(omega, roots["S2h2"][i]));
             }
-            for (uint i = 1; i < 4; i++) {
+            for (uint i = 0; i < 4; i++) {
                 preF2 = E.fr.mul(preF2, E.fr.sub(omega, roots["S2h3"][i]));
             }
 
