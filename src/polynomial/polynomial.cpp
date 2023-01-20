@@ -1,6 +1,7 @@
 #include "polynomial.hpp"
 #include "thread_utils.hpp"
-
+#include "evaluations.hpp"
+#include <math.h>
 #include "logger.hpp"
 
 using namespace CPlusPlusLogging;
@@ -24,7 +25,7 @@ Polynomial<Engine>* Polynomial<Engine>::fromCoefficients(Engine &_E, FrElement* 
     Polynomial<Engine>* pol = new Polynomial<Engine>(_E, length, blindLength);
 
     int nThreads = omp_get_max_threads() / 2;
-    ThreadUtils<Engine>::parcpy(pol->coef, coefficients, length * sizeof(FrElement), nThreads);
+    ThreadUtils::parcpy(pol->coef, coefficients, length * sizeof(FrElement), nThreads);
     pol->fixDegree();
 
     return pol;
@@ -35,7 +36,7 @@ Polynomial<Engine>* Polynomial<Engine>::fromEvaluations(Engine &_E, FFT<typename
     Polynomial<Engine>* pol = new Polynomial<Engine>(_E, length, blindLength);
 
     int nThreads = omp_get_max_threads() / 2;
-    ThreadUtils<Engine>::parcpy(pol->coef, evaluations, length * sizeof(FrElement), nThreads);
+    ThreadUtils::parcpy(pol->coef, evaluations, length * sizeof(FrElement), nThreads);
 
     fft->ifft(pol->coef, length);
 
@@ -218,7 +219,7 @@ void Polynomial<Engine>::byXSubValue(FrElement &value) {
 
     // Step 0: Set current coefficients to the new buffer shifted one position
     int nThreads = omp_get_max_threads() / 2;
-    ThreadUtils<Engine>::parcpy(&pol->coef[1], this->coef, (resize ? this->length : this->length -1)  * sizeof(FrElement), nThreads);
+    ThreadUtils::parcpy(&pol->coef[1], this->coef, (resize ? this->length : this->length -1)  * sizeof(FrElement), nThreads);
     pol->fixDegree();
 
     // Step 1: multiply each coefficient by (-value)
@@ -246,11 +247,12 @@ Polynomial<Engine>* Polynomial<Engine>::divBy(Polynomial<Engine> &polynomial) {
     this->coef = polR->coef;
     polR->coef = ptr;
 
+    FrElement val = polynomial.coef[degreeB];
     for (int64_t i = degreeA - degreeB; i >= 0; i--) {
-        E.fr.div(this->coef[i], polR->getCoef(i + degreeB), polynomial.getCoef(degreeB));
+        E.fr.div(this->coef[i], polR->coef[i + degreeB], val);
 
         for (u_int64_t j = 0; j <= degreeB; j++) {
-            polR->coef[i + j] = E.fr.sub(polR->getCoef(i + j), E.fr.mul(this->coef[i], polynomial.coef[j]));
+            polR->coef[i + j] = E.fr.sub(polR->coef[i + j], E.fr.mul(this->coef[i], polynomial.coef[j]));
         }
     }
 
@@ -262,19 +264,34 @@ Polynomial<Engine>* Polynomial<Engine>::divBy(Polynomial<Engine> &polynomial) {
 
 template<typename Engine>
 void Polynomial<Engine>::divZh(u_int64_t domainSize) {
+    #pragma omp parallel for
     for (u_int64_t i = 0; i < domainSize; i++) {
         E.fr.neg(this->coef[i], this->coef[i]);
     }
 
-    for (u_int64_t i = domainSize; i < this->length; i++) {
-        E.fr.sub(coef[i], coef[i - domainSize], coef[i]);
+    int nThreads = pow(2, log2(omp_get_max_threads()));
+    int nElementsThread = domainSize / nThreads;
+    int nChunks = this->length / domainSize;
 
-        if (i > (domainSize * 3 - 4)) {
-            if (!E.fr.isZero(coef[i])) {
-                throw std::runtime_error("Polynomial is not divisible");
+    for (uint i = 0; i < nChunks - 1; i++) {
+        #pragma omp parallel for
+        for (uint k = 0; k < nThreads; k++) {
+            for (uint j = 0; j < nElementsThread; j++) {
+                    int id = k;
+                    u_int64_t idxBase = id * nElementsThread + j;
+                    u_int64_t idx0 = idxBase + i * domainSize;
+                    u_int64_t idx1 = idxBase + (i + 1) * domainSize;
+                    E.fr.sub(coef[idx1], coef[idx0], coef[idx1]);
+
+                if (i > (domainSize * 3 - 4)) {
+                    if (!E.fr.isZero(coef[idx1])) {
+                        throw std::runtime_error("Polynomial is not divisible");
+                    }
+                }
             }
         }
     }
+
     fixDegree();
 }
 
@@ -285,10 +302,10 @@ void Polynomial<Engine>::byX() {
 
     if (resize) {
         FrElement *newCoef = new FrElement[this->length + 1];
-        ThreadUtils<Engine>::parcpy(newCoef[1], coef[0], sizeof(coef), nThreads);
+        ThreadUtils::parcpy(newCoef[1], coef[0], sizeof(coef), nThreads);
         coef = newCoef;
     } else {
-        ThreadUtils<Engine>::parcpy(coef[1], coef[0], sizeof(coef), nThreads);
+        ThreadUtils::parcpy(coef[1], coef[0], sizeof(coef), nThreads);
     }
 
     coef[0] = E.fr.zero;

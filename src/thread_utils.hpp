@@ -1,15 +1,14 @@
 #ifndef __THREAD_UTILS_H__
 #define __THREAD_UTILS_H__
 
+#include <omp.h>
 
-template<typename Engine>
 class ThreadUtils {
 public:
     static void parcpy(void *dst, const void *src, uint64_t nBytes, uint32_t nThreads);
 };
 
-template<typename Engine>
-inline void ThreadUtils<Engine>::parcpy(void *dst, const void *src, uint64_t nBytes, uint32_t nThreads) {
+inline void ThreadUtils::parcpy(void *dst, const void *src, uint64_t nBytes, uint32_t nThreads) {
     if (nThreads < 1) nThreads = 1;
 
     uint64_t bytesThread = nBytes / nThreads;

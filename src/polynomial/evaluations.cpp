@@ -19,7 +19,7 @@ Evaluations<Engine>::Evaluations(Engine &_E, FrElement *evaluations, u_int64_t l
     initialize(length);
 
     int nThreads = omp_get_max_threads() / 2;
-    ThreadUtils<Engine>::parcpy(eval,
+    ThreadUtils::parcpy(eval,
                                 evaluations,
                                 length * sizeof(FrElement), nThreads);
 
@@ -33,7 +33,7 @@ Evaluations<Engine>::Evaluations(Engine &_E, FFT<typename Engine::Fr> *fft, Poly
     //TODO improve performance
     #pragma omp parallel for
     for (int64_t index = 0; index < polynomial.getDegree() + 1; ++index) {
-        eval[index] = polynomial.getCoef(index);
+        eval[index] = polynomial.coef[index];
     }
 
     //Coefficients to evaluations

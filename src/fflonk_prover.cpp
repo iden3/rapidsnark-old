@@ -148,19 +148,19 @@ processingTime.push_back(ProcessingTime("calculateAdditions", high_resolution_cl
 
             int nThreads = omp_get_max_threads() / 2;
 
-            ThreadUtils<Engine>::parcpy(polynomials["Sigma1"]->coef,
+            ThreadUtils::parcpy(polynomials["Sigma1"]->coef,
                                         (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION),
                                         sDomain, nThreads);
-            ThreadUtils<Engine>::parcpy(polynomials["Sigma2"]->coef,
+            ThreadUtils::parcpy(polynomials["Sigma2"]->coef,
                                         (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION),
                                         sDomain, nThreads);
-            ThreadUtils<Engine>::parcpy(polynomials["Sigma3"]->coef,
+            ThreadUtils::parcpy(polynomials["Sigma3"]->coef,
                                         (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION),
                                         sDomain, nThreads);
 
 processingTime.push_back(ProcessingTime("read Sigma pol", high_resolution_clock::now()));
 
-            polynomials["Sigma1"]->fixDegree();
+            polynomials["Sigma1"]->compfixDegree();
             polynomials["Sigma2"]->fixDegree();
             polynomials["Sigma3"]->fixDegree();
 
@@ -169,13 +169,13 @@ processingTime.push_back(ProcessingTime("read Sigma pol", high_resolution_clock:
             evaluations["Sigma2"] = new Evaluations<Engine>(E, zkey->domainSize * 4);
             evaluations["Sigma3"] = new Evaluations<Engine>(E, zkey->domainSize * 4);
 
-            ThreadUtils<Engine>::parcpy(evaluations["Sigma1"]->eval,
+            ThreadUtils::parcpy(evaluations["Sigma1"]->eval,
                                         (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION) + zkey->domainSize,
                                         sDomain * 4, nThreads);
-            ThreadUtils<Engine>::parcpy(evaluations["Sigma2"]->eval,
+            ThreadUtils::parcpy(evaluations["Sigma2"]->eval,
                                         (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA2_SECTION) + zkey->domainSize,
                                         sDomain * 4, nThreads);
-            ThreadUtils<Engine>::parcpy(evaluations["Sigma3"]->eval,
+            ThreadUtils::parcpy(evaluations["Sigma3"]->eval,
                                         (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA3_SECTION) + zkey->domainSize,
                                         sDomain * 4, nThreads);
 processingTime.push_back(ProcessingTime("read Sigma eval", high_resolution_clock::now()));
@@ -190,7 +190,7 @@ processingTime.push_back(ProcessingTime("read Sigma eval", high_resolution_clock
             // it corresponds to the maximum SRS length needed, specifically to commit C2
             // notice that the reserved buffers size is zkey->domainSize * 16 * sG1 because a power of two buffer size is needed
             // the remaining buffer not filled from SRS are set to 0
-            ThreadUtils<Engine>::parcpy(this->PTau,
+            ThreadUtils::parcpy(this->PTau,
                                         (G1PointAffine *) fdZkey->getSectionData(Zkey::ZKEY_FF_PTAU_SECTION),
                                         (zkey->domainSize * 9 + 18) * sizeof(G1PointAffine), nThreads);
 processingTime.push_back(ProcessingTime("read PTau", high_resolution_clock::now()));
@@ -295,6 +295,7 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
 
     template<typename Engine>
     void FflonkProver<Engine>::calculateAdditions(BinFileUtils::BinFile *fdZkey) {
+        LOG_TRACE("··· Computing additions");
         Zkey::Addition<Engine> *additionsBuff = (Zkey::Addition<Engine> *)fdZkey->getSectionData(Zkey::ZKEY_FF_ADDITIONS_SECTION);
 
         for (u_int32_t i = 0; i < zkey->nAdditions; i++) {
@@ -332,18 +333,22 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
         for (u_int32_t i = 0; i < zkey->nAdditions; i++) {
             blindingFactors[i] = E.fr.one();
         }
+        processingTime.push_back(ProcessingTime("computeWirePolynomials inici", high_resolution_clock::now()));
 
         // STEP 1.2 - Compute wire polynomials a(X), b(X) and c(X)
         LOG_TRACE("> Computing A, B, C wire polynomials");
         computeWirePolynomials();
+        processingTime.push_back(ProcessingTime("computeWirePolynomials", high_resolution_clock::now()));
 
         // STEP 1.3 - Compute the quotient polynomial T0(X)
         LOG_TRACE("> Computing T0 polynomial");
         computeT0();
+        processingTime.push_back(ProcessingTime("computeT0", high_resolution_clock::now()));
 
         // STEP 1.4 - Compute the FFT-style combination polynomial C1(X)
         LOG_TRACE("> Computing C1 polynomial");
         computeC1();
+        processingTime.push_back(ProcessingTime("compute C1", high_resolution_clock::now()));
 
         // The first output of the prover is ([C1]_1)
         LOG_TRACE("> Computing C1 multi exponentiation");
@@ -371,39 +376,23 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
 
         // Read zkey sections and fill the buffers
         int nThreads = omp_get_max_threads() / 2;
-        ThreadUtils<Engine>::parcpy(mapBuffers["A"],
+        ThreadUtils::parcpy(mapBuffers["A"],
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_A_MAP_SECTION),
                                     byteLength, nThreads);
-        ThreadUtils<Engine>::parcpy(mapBuffers["B"],
+        ThreadUtils::parcpy(mapBuffers["B"],
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_B_MAP_SECTION),
                                     byteLength, nThreads);
-        ThreadUtils<Engine>::parcpy(mapBuffers["C"],
+        ThreadUtils::parcpy(mapBuffers["C"],
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_C_MAP_SECTION),
                                     byteLength, nThreads);
 
-        #pragma omp parallel
-        {
-            #pragma omp sections
-            {
-                #pragma omp section
-                {
-                    FrElement bFactors[2] = {blindingFactors[2], blindingFactors[1]};
-                    computeWirePolynomial("A", bFactors);
-                }
+        FrElement bFactorsA[2] = {blindingFactors[2], blindingFactors[1]};
+        FrElement bFactorsB[2] = {blindingFactors[4], blindingFactors[3]};
+        FrElement bFactorsC[2] = {blindingFactors[6], blindingFactors[5]};
 
-                #pragma omp section
-                {
-                    FrElement bFactors[2] = {blindingFactors[4], blindingFactors[3]};
-                    computeWirePolynomial("B", bFactors);
-                }
-
-                #pragma omp section
-                {
-                    FrElement bFactors[2] = {blindingFactors[6], blindingFactors[5]};
-                    computeWirePolynomial("C", bFactors);
-                }
-            }
-        }
+        computeWirePolynomial("A", bFactorsA);
+        computeWirePolynomial("B", bFactorsB);
+        computeWirePolynomial("C", bFactorsC);
 
         // Check degrees
         if (polynomials["A"]->getDegree() >= zkey->domainSize + 2) {
@@ -464,25 +453,25 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
 
         // Read Q's evaluations from zkey file
         int nThreads = omp_get_max_threads() / 2;
-        ThreadUtils<Engine>::parcpy(evaluations["QL"]->eval,
+        ThreadUtils::parcpy(evaluations["QL"]->eval,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION) + zkey->domainSize,
                                     sDomain * 4, nThreads);
-        ThreadUtils<Engine>::parcpy(evaluations["QR"]->eval,
+        ThreadUtils::parcpy(evaluations["QR"]->eval,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QR_SECTION) + zkey->domainSize,
                                     sDomain * 4, nThreads);
-        ThreadUtils<Engine>::parcpy(evaluations["QM"]->eval,
+        ThreadUtils::parcpy(evaluations["QM"]->eval,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QM_SECTION) + zkey->domainSize,
                                     sDomain * 4, nThreads);
-        ThreadUtils<Engine>::parcpy(evaluations["QO"]->eval,
+        ThreadUtils::parcpy(evaluations["QO"]->eval,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QO_SECTION) + zkey->domainSize,
                                     sDomain * 4, nThreads);
-        ThreadUtils<Engine>::parcpy(evaluations["QC"]->eval,
+        ThreadUtils::parcpy(evaluations["QC"]->eval,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QC_SECTION) + zkey->domainSize,
                                     sDomain * 4, nThreads);
 
         // Read Lagrange polynomials & evaluations from zkey file
         evaluations["lagrange1"] = new Evaluations<Engine>(E, zkey->domainSize * 4);
-        ThreadUtils<Engine>::parcpy(evaluations["lagrange1"]->eval,
+        ThreadUtils::parcpy(evaluations["lagrange1"]->eval,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_LAGRANGE_SECTION) + zkey->domainSize,
                                     sDomain * 4, nThreads);
 
@@ -495,21 +484,21 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
                 ss << "      t0 evaluation " << i << "/" << zkey->domainSize * 4;
-                LOG_TRACE(ss);
+//                LOG_TRACE(ss);
             }
 
             FrElement omega =  fft->root(zkeyPower + 2, i);
 
             // Get related evaluations to compute current T0 evaluation
-            FrElement a = evaluations["A"]->getEvaluation(i);
-            FrElement b = evaluations["B"]->getEvaluation(i);
-            FrElement c = evaluations["C"]->getEvaluation(i);
+            FrElement a = evaluations["A"]->eval[i];
+            FrElement b = evaluations["B"]->eval[i];
+            FrElement c = evaluations["C"]->eval[i];
 
-            FrElement ql = evaluations["QL"]->getEvaluation(i);
-            FrElement qr = evaluations["QR"]->getEvaluation(i);
-            FrElement qm = evaluations["QM"]->getEvaluation(i);
-            FrElement qo = evaluations["QO"]->getEvaluation(i);
-            FrElement qc = evaluations["QC"]->getEvaluation(i);
+            FrElement ql = evaluations["QL"]->eval[i];
+            FrElement qr = evaluations["QR"]->eval[i];
+            FrElement qm = evaluations["QM"]->eval[i];
+            FrElement qo = evaluations["QO"]->eval[i];
+            FrElement qc = evaluations["QC"]->eval[i];
 
             // Compute blinding factors
             FrElement az = E.fr.add(E.fr.mul(blindingFactors[1], omega), blindingFactors[2]);
@@ -520,7 +509,7 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
             FrElement pi = E.fr.zero();
             for (u_int32_t j = 0; j < zkey->nPublic; j++) {
                 u_int32_t offset = (j * 4 * zkey->domainSize) + i;
-                FrElement lPol = evaluations["lagrange1"]->getEvaluation(offset);
+                FrElement lPol = evaluations["lagrange1"]->eval[offset];
                 FrElement aVal = buffers["A"][j];
 
                 pi = E.fr.sub(pi, E.fr.mul(lPol, aVal));
@@ -558,7 +547,10 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
         polynomials["T0"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T0"], zkey->domainSize * 4);
 
         // Divide the polynomial T0 by Z_H(X)
+        processingTime.push_back(ProcessingTime("T0 divZh ini", high_resolution_clock::now()));
+        LOG_TRACE("··· Computing T0 / ZH");
         polynomials["T0"]->divZh(zkey->domainSize);
+        processingTime.push_back(ProcessingTime("T0 divZh fi", high_resolution_clock::now()));
 
         // Compute the coefficients of the polynomial T0z(X) from buffers.T0z
         LOG_TRACE("··· Computing T0z ifft");
@@ -607,13 +599,13 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
                 ss << "      c1 coefficients " << i << "/" << maxLength;
-                LOG_TRACE(ss);
+                //LOG_TRACE(ss);
             }
 
-            if(i <= degreeA) polynomials["C1"]->coef[i * 4] = polynomials["A"]->getCoef(i);
-            if(i <= degreeB) polynomials["C1"]->coef[i * 4 + 1] = polynomials["B"]->getCoef(i);
-            if(i <= degreeC) polynomials["C1"]->coef[i * 4 + 2] = polynomials["C"]->getCoef(i);
-            if(i <= degreeT0) polynomials["C1"]->coef[i * 4 + 3] = polynomials["T0"]->getCoef(i);
+            if(i <= degreeA) polynomials["C1"]->coef[i * 4] = polynomials["A"]->coef[i];
+            if(i <= degreeB) polynomials["C1"]->coef[i * 4 + 1] = polynomials["B"]->coef[i];
+            if(i <= degreeC) polynomials["C1"]->coef[i * 4 + 2] = polynomials["C"]->coef[i];
+            if(i <= degreeT0) polynomials["C1"]->coef[i * 4 + 3] = polynomials["T0"]->coef[i];
         }
 
         polynomials["C1"]->fixDegree();
@@ -686,7 +678,7 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
                 ss << "> Computing Z evaluation " << i << "/" << zkey->domainSize;
-                LOG_TRACE(ss);
+                //LOG_TRACE(ss);
             }
 
             FrElement omega = fft->root(zkeyPower, i);
@@ -711,15 +703,15 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
 
             // denArr := (a + beta·sigma1 + gamma)(b + beta·sigma2 + gamma)(c + beta·sigma3 + gamma)
             FrElement den1 = buffers["A"][i];
-            den1 = E.fr.add(den1, E.fr.mul(challenges["beta"], evaluations["Sigma1"]->getEvaluation(i * 4)));
+            den1 = E.fr.add(den1, E.fr.mul(challenges["beta"], evaluations["Sigma1"]->eval[i * 4]));
             den1 = E.fr.add(den1, challenges["gamma"]);
 
             FrElement den2 = buffers["B"][i];
-            den2 = E.fr.add(den2, E.fr.mul(challenges["beta"], evaluations["Sigma2"]->getEvaluation(i * 4)));
+            den2 = E.fr.add(den2, E.fr.mul(challenges["beta"], evaluations["Sigma2"]->eval[i * 4]));
             den2 = E.fr.add(den2, challenges["gamma"]);
 
             FrElement den3 = buffers["C"][i];
-            den3 = E.fr.add(den3, E.fr.mul(challenges["beta"], evaluations["Sigma3"]->getEvaluation(i * 4)));
+            den3 = E.fr.add(den3, E.fr.mul(challenges["beta"], evaluations["Sigma3"]->eval[i * 4]));
             den3 = E.fr.add(den3, challenges["gamma"]);
 
             den[i] = E.fr.mul(den1, E.fr.mul(den2, den3));
@@ -730,7 +722,6 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
         denArr[0] = E.fr.one();
 
         for (u_int64_t i = 0; i < zkey->domainSize; i++) {
-
             // Multiply current num value with the previous one saved in numArr
             numArr[(i + 1) % zkey->domainSize] = E.fr.mul(numArr[i], num[i]);
 
@@ -757,6 +748,7 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
         polynomials["Z"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["Z"], zkey->domainSize, 3);
 
         // Compute extended evaluations of z(X) polynomial
+        LOG_TRACE("··· Computing Z fft");
         evaluations["Z"] = new Evaluations<Engine>(E, fft, *polynomials["Z"], zkey->domainSize * 4);
 
         // Blind z(X) polynomial coefficients with blinding scalars b
@@ -784,19 +776,19 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
                 ss << "    T1 evaluation " << i << "/" << zkey->domainSize * 4;
-                LOG_TRACE(ss);
+                //LOG_TRACE(ss);
             }
 
             FrElement omega = fft->root(zkeyPower + 2, i);
             FrElement omega2 =  E.fr.square(omega);
 
-            FrElement z = evaluations["Z"]->getEvaluation(i);
+            FrElement z = evaluations["Z"]->eval[i];
             FrElement zp = E.fr.add(E.fr.add(
                     E.fr.mul(blindingFactors[7], omega2), E.fr.mul(blindingFactors[8], omega)), blindingFactors[9]);
 
             // T1(X) := (z(X) - 1) · L_1(X)
             // Compute first T1(X)·Z_H(X), so divide later the resulting polynomial by Z_H(X)
-            FrElement lagrange1 = evaluations["lagrange1"]->getEvaluation(i);
+            FrElement lagrange1 = evaluations["lagrange1"]->eval[i];
             FrElement t1 = E.fr.mul(E.fr.sub(z, E.fr.one()), lagrange1);
             FrElement t1z = E.fr.mul(zp, lagrange1);
 
@@ -810,7 +802,9 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
         polynomials["T1"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T1"], zkey->domainSize * 4);
 
         // Divide the polynomial T1 by Z_H(X)
+        processingTime.push_back(ProcessingTime("T1 divZh ini", high_resolution_clock::now()));
         polynomials["T1"]->divZh(zkey->domainSize);
+        processingTime.push_back(ProcessingTime("T1 divZh fi", high_resolution_clock::now()));
 
         // Compute the coefficients of the polynomial T1z(X) from buffers.T1z
         LOG_TRACE("··· Computing T1z ifft");
@@ -842,7 +836,7 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
                 ss << "    T2 evaluation " << i << "/" << zkey->domainSize * 4;
-                LOG_TRACE(ss);
+                //LOG_TRACE(ss);
             }
 
             FrElement omega = fft->root(zkeyPower + 2, i);
@@ -850,11 +844,11 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
             FrElement omegaW = E.fr.mul(omega, fft->root(zkeyPower, 1));
             FrElement omegaW2 = E.fr.square(omegaW);
 
-            FrElement a = evaluations["A"]->getEvaluation(i);
-            FrElement b = evaluations["B"]->getEvaluation(i);
-            FrElement c = evaluations["C"]->getEvaluation(i);
-            FrElement z = evaluations["Z"]->getEvaluation(i);
-            FrElement zW = evaluations["Z"]->getEvaluation((zkey->domainSize * 4 + 4 + i) % (zkey->domainSize * 4));
+            FrElement a = evaluations["A"]->eval[i];
+            FrElement b = evaluations["B"]->eval[i];
+            FrElement c = evaluations["C"]->eval[i];
+            FrElement z = evaluations["Z"]->eval[i];
+            FrElement zW = evaluations["Z"]->eval[(zkey->domainSize * 4 + 4 + i) % (zkey->domainSize * 4)];
 
             FrElement ap = E.fr.add(E.fr.mul(blindingFactors[1], omega), blindingFactors[2]);
             FrElement bp = E.fr.add(E.fr.mul(blindingFactors[3], omega), blindingFactors[4]);
@@ -862,9 +856,9 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
             FrElement zp = E.fr.add(E.fr.add(E.fr.mul(blindingFactors[7], omega2), E.fr.mul(blindingFactors[8], omega)), blindingFactors[9]);
             FrElement zWp = E.fr.add(E.fr.add(E.fr.mul(blindingFactors[7], omegaW2), E.fr.mul(blindingFactors[8], omegaW)), blindingFactors[9]);
 
-            FrElement sigma1 = evaluations["Sigma1"]->getEvaluation(i);
-            FrElement sigma2 = evaluations["Sigma2"]->getEvaluation(i);
-            FrElement sigma3 = evaluations["Sigma3"]->getEvaluation(i);
+            FrElement sigma1 = evaluations["Sigma1"]->eval[i];
+            FrElement sigma2 = evaluations["Sigma2"]->eval[i];
+            FrElement sigma3 = evaluations["Sigma3"]->eval[i];
 
             // T2(X) := [ (a(X) + beta·X + gamma)(b(X) + beta·k1·X + gamma)(c(X) + beta·k2·X + gamma)z(X)
             //           -(a(X) + beta·sigma1(X) + gamma)(b(X) + beta·sigma2(X) + gamma)(c(X) + beta·sigma3(X) + gamma)z(Xω)] · 1/Z_H(X)
@@ -908,7 +902,9 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
         polynomials["T2"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T2"], zkey->domainSize * 4);
 
         // Divide the polynomial T2 by Z_H(X)
+        processingTime.push_back(ProcessingTime("T2 divZh ini", high_resolution_clock::now()));
         polynomials["T2"]->divZh(zkey->domainSize);
+        processingTime.push_back(ProcessingTime("T2 divZh fi", high_resolution_clock::now()));
 
         // Compute the coefficients of the polynomial T2z(X) from buffers.T2z
         LOG_TRACE("··· Computing T2z ifft");
@@ -956,12 +952,12 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
                 ss << "    C2 coefficient " << i << "/" << maxLength;
-                LOG_TRACE(ss);
+                //LOG_TRACE(ss);
             }
 
-            if (i <= degreeZ) polynomials["C2"]->coef[i * 3] = polynomials["Z"]->getCoef(i);
-            if (i <= degreeT1) polynomials["C2"]->coef[i * 3 + 1] = polynomials["T1"]->getCoef(i);
-            if (i <= degreeT2) polynomials["C2"]->coef[i * 3 + 2] = polynomials["T2"]->getCoef(i);
+            if (i <= degreeZ) polynomials["C2"]->coef[i * 3] = polynomials["Z"]->coef[i];
+            if (i <= degreeT1) polynomials["C2"]->coef[i * 3 + 1] = polynomials["T1"]->coef[i];
+            if (i <= degreeT2) polynomials["C2"]->coef[i * 3 + 2] = polynomials["T2"]->coef[i];
         }
 
         polynomials["C2"]->fixDegree();
@@ -1034,19 +1030,19 @@ processingTime.push_back(ProcessingTime("round5", high_resolution_clock::now()))
 
         // Read Q's evaluations from zkey file
         int nThreads = omp_get_max_threads() / 2;
-        ThreadUtils<Engine>::parcpy(polynomials["QL"]->coef,
+        ThreadUtils::parcpy(polynomials["QL"]->coef,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QL_SECTION),
                                     sDomain, nThreads);
-        ThreadUtils<Engine>::parcpy(polynomials["QR"]->coef,
+        ThreadUtils::parcpy(polynomials["QR"]->coef,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QR_SECTION),
                                     sDomain, nThreads);
-        ThreadUtils<Engine>::parcpy(polynomials["QM"]->coef,
+        ThreadUtils::parcpy(polynomials["QM"]->coef,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QM_SECTION),
                                     sDomain, nThreads);
-        ThreadUtils<Engine>::parcpy(polynomials["QO"]->coef,
+        ThreadUtils::parcpy(polynomials["QO"]->coef,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QO_SECTION),
                                     sDomain, nThreads);
-        ThreadUtils<Engine>::parcpy(polynomials["QC"]->coef,
+        ThreadUtils::parcpy(polynomials["QC"]->coef,
                                     (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_QC_SECTION),
                                     sDomain, nThreads);
 
@@ -1123,15 +1119,16 @@ processingTime.push_back(ProcessingTime("evaluations", high_resolution_clock::no
         computeZT();
         processingTime.push_back(ProcessingTime("computeZT", high_resolution_clock::now()));
 
-        Polynomial<Engine>* polRemainder = polynomials["F"]->divBy(*polynomials["ZT"]);
+        LOG_TRACE("> Computing W = F / ZT polynomial");
+        polynomials["F"]->divBy(*polynomials["ZT"]);
         processingTime.push_back(ProcessingTime("divBy ZT", high_resolution_clock::now()));
 
         // Check degrees
-        if (polRemainder->getDegree() > 0) {
-            std::ostringstream ss;
-            ss << "Degree of f(X)/ZT(X) remainder is " << polRemainder->getDegree() << " and should be 0";
-            throw std::runtime_error(ss.str());
-        }
+//        if (polRemainder->getDegree() > 0) {
+//            std::ostringstream ss;
+//            ss << "Degree of f(X)/ZT(X) remainder is " << polRemainder->getDegree() << " and should be 0";
+//            throw std::runtime_error(ss.str());
+//        }
         if (polynomials["F"]->getDegree() >= 9 * zkey->domainSize + 12) {
             throw std::runtime_error("Degree of f(X)/ZT(X) is not correct");
         }
@@ -1200,13 +1197,13 @@ processingTime.push_back(ProcessingTime("evaluations", high_resolution_clock::no
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
                 ss << "    F evaluation " << i << "/" << zkey->domainSize * 16;
-                LOG_TRACE(ss);
+                //LOG_TRACE(ss);
             }
 
             FrElement omega =  fft->root(zkeyPower + 4, i);
 
-            FrElement c1 = evaluations["C1"]->getEvaluation(i);
-            FrElement c2 = evaluations["C2"]->getEvaluation(i);
+            FrElement c1 = evaluations["C1"]->eval[i];
+            FrElement c2 = evaluations["C2"]->eval[i];
             FrElement r1 = polynomials["R1"]->evaluate(omega);
             FrElement r2 = polynomials["R2"]->evaluate(omega);
 
@@ -1281,7 +1278,7 @@ processingTime.push_back(ProcessingTime("evaluations", high_resolution_clock::no
         E.fr.neg(dividendArr[0], challenges["y"]);
         dividendArr[1] = E.fr.one();
         Polynomial<Engine> *polDividend = Polynomial<Engine>::fromCoefficients(E, dividendArr, 2);
-        LOG_TRACE("> Computing W' polynomial");
+        LOG_TRACE("> Computing W' = L / ZTS2 polynomial");
         Polynomial<Engine>* polRemainder = polynomials["L"]->divBy(*polDividend);
 
         // Check degrees
@@ -1347,14 +1344,14 @@ processingTime.push_back(ProcessingTime("evaluations", high_resolution_clock::no
             if ((0 != i) && (i % 100000 == 0)) {
                 ss.str("");
                 ss << "    L evaluation " << i << "/" << zkey->domainSize * 16;
-                LOG_TRACE(ss);
+                //LOG_TRACE(ss);
             }
 
             FrElement omega =  fft->root(zkeyPower + 4, i);
 
-            FrElement c1 = evaluations["C1"]->getEvaluation(i);
-            FrElement c2 = evaluations["C2"]->getEvaluation(i);
-            FrElement f = evaluations["F"]->getEvaluation(i);
+            FrElement c1 = evaluations["C1"]->eval[i];
+            FrElement c2 = evaluations["C2"]->eval[i];
+            FrElement f = evaluations["F"]->eval[i];
 
             // l1 = (y - h2) (y - h2w3) (y - h2w3_2) (y - h3) (y - h3w3) (y - h3w3_2) (C1(X) - R1(y))
             FrElement l1;

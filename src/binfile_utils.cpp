@@ -8,6 +8,8 @@
 #include <stdexcept>
 
 #include "binfile_utils.hpp"
+#include "thread_utils.hpp"
+#include <omp.h>
 
 namespace BinFileUtils {
 
@@ -27,7 +29,11 @@ BinFile::BinFile(std::string fileName, std::string _type, uint32_t maxVersion) {
     size = sb.st_size;
     void *addrmm = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
     addr = malloc(sb.st_size);
-    memcpy(addr, addrmm, sb.st_size);
+
+    int nThreads = omp_get_max_threads() / 2;
+    ThreadUtils::parcpy(addr, addrmm, sb.st_size, nThreads);
+//    memcpy(addr, addrmm, sb.st_size);
+
     munmap(addrmm, sb.st_size);
     close(fd);
 
