@@ -1298,7 +1298,7 @@ namespace Fflonk {
             for (uint i = 1; i < 3; i++) {
                 preF2 = E.fr.mul(preF2, E.fr.sub(omega, roots["S2h2"][i]));
             }
-            for (uint i = 0; i < 4; i++) {
+            for (uint i = 0; i < 3; i++) {
                 preF2 = E.fr.mul(preF2, E.fr.sub(omega, roots["S2h3"][i]));
             }
 
