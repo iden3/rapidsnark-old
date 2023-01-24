@@ -49,6 +49,8 @@ public:
 
     typename Engine::FrElement evaluate(FrElement point) const;
 
+    typename Engine::FrElement fastEvaluate(FrElement point) const;
+
     void add(Polynomial<Engine> &polynomial);
 
     void sub(Polynomial<Engine> &polynomial);
@@ -64,6 +66,10 @@ public:
 
     // Euclidean division, returns reminder polygon
     Polynomial<Engine>* divBy(Polynomial<Engine> &polynomial);
+
+    void divByMonic(uint32_t m, FrElement beta);
+
+    Polynomial<Engine>* divByVanishing(uint32_t m, FrElement beta);
 
     void divZh(u_int64_t domainSize);
 

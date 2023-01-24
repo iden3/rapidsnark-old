@@ -27,15 +27,27 @@ namespace Fflonk {
         using G1PointAffine = typename Engine::G1PointAffine;
 
         Dump::Dump<Engine> *dump;
+
         struct ProcessingTime {
             std::string label;
-            time_point<std::chrono::high_resolution_clock> duration;
-            ProcessingTime(std::string label, time_point<std::chrono::high_resolution_clock> duration) : label(label), duration(duration){}
+            time_point <std::chrono::high_resolution_clock> duration;
+
+            ProcessingTime(std::string label, time_point <std::chrono::high_resolution_clock> duration) : label(label),
+                                                                                                          duration(duration) {}
         };
-        std::vector<ProcessingTime> processingTime;
+
+        std::vector <ProcessingTime> T1;
+        std::vector <ProcessingTime> T2;
+        std::vector <ProcessingTime> TR1;
+        std::vector <ProcessingTime> TR2;
+        std::vector <ProcessingTime> TR3;
+        std::vector <ProcessingTime> TR4;
+        std::vector <ProcessingTime> TR5;
+        std::vector <ProcessingTime> TR;
+
 
         Engine &E;
-        FFT<typename Engine::Fr> *fft=NULL;
+        FFT<typename Engine::Fr> *fft = NULL;
         MulZ<Engine> *mulZ;
 
         BinFileUtils::BinFile *fdZkey;
@@ -51,14 +63,14 @@ namespace Fflonk {
         FrElement *buffWitness;
         FrElement *buffInternalWitness;
 
-        std::map<std::string, u_int32_t*> mapBuffers;
-        std::map<std::string, FrElement*> buffers;
-        std::map <std::string, Polynomial<Engine>*> polynomials;
-        std::map <std::string, Evaluations<Engine>*> evaluations;
+        std::map<std::string, u_int32_t *> mapBuffers;
+        std::map<std::string, FrElement *> buffers;
+        std::map<std::string, Polynomial<Engine> *> polynomials;
+        std::map<std::string, Evaluations<Engine> *> evaluations;
 
         std::map <std::string, FrElement> toInverse;
         std::map <std::string, FrElement> challenges;
-        std::map<std::string, FrElement*> roots;
+        std::map<std::string, FrElement *> roots;
         FrElement blindingFactors[10];
 
         SnarkProof<Engine> *proof;
@@ -119,7 +131,7 @@ namespace Fflonk {
 
         void batchInverse(FrElement *elements, u_int64_t length);
 
-        FrElement* polynomialFromMontgomery(Polynomial<Engine> *polynomial);
+        FrElement *polynomialFromMontgomery(Polynomial<Engine> *polynomial);
 
         FrElement getMontgomeryBatchedInverse();
 
@@ -129,7 +141,14 @@ namespace Fflonk {
 
         G1Point multiExponentiation(Polynomial<Engine> *polynomial);
 
+        G1Point multiExponentiation(Polynomial<Engine> *polynomial, u_int32_t nx, u_int64_t x[]);
+
         void printPol(std::string name, const Polynomial<Engine> *polynomial);
+
+        void resetTimer(std::vector <ProcessingTime> &T);
+        void takeTime(std::vector <ProcessingTime> &T, const std::string label);
+
+        void printTimer(std::vector <ProcessingTime> &T);
     };
 }
 
