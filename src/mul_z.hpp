@@ -4,7 +4,7 @@
 #include "assert.h"
 #include <sstream>
 #include <gmp.h>
-#include "fft.hpp"
+#include "fft2.hpp"
 
 template<typename Engine>
 class MulZ {

@@ -6,14 +6,14 @@
 #include "snark_proof.hpp"
 #include "binfile_utils.hpp"
 #include <gmp.h>
-#include "fft.hpp"
+#include "fft2.hpp"
 #include "zkey_fflonk.hpp"
 #include "polynomial/polynomial.hpp"
 #include "polynomial/evaluations.hpp"
 #include <nlohmann/json.hpp>
 #include "mul_z.hpp"
 #include "dump.hpp"
-#include <chrono>
+#include "keccak_256_transcript.hpp"
 
 using json = nlohmann::json;
 using namespace std::chrono;
@@ -30,10 +30,9 @@ namespace Fflonk {
 
         struct ProcessingTime {
             std::string label;
-            time_point <std::chrono::high_resolution_clock> duration;
+            double duration;
 
-            ProcessingTime(std::string label, time_point <std::chrono::high_resolution_clock> duration) : label(label),
-                                                                                                          duration(duration) {}
+            ProcessingTime(std::string label, double duration) : label(label), duration(duration) {}
         };
 
         std::vector <ProcessingTime> T1;
@@ -63,6 +62,13 @@ namespace Fflonk {
         FrElement *buffWitness;
         FrElement *buffInternalWitness;
 
+        FrElement *bigBufferBuffers;
+        FrElement *bigBufferPolynomials;
+        FrElement *bigBufferEvaluations;
+        std::map<std::string, FrElement *> bufPtr;
+        std::map<std::string, FrElement *> polPtr;
+        std::map<std::string, FrElement *> evalPtr;
+
         std::map<std::string, u_int32_t *> mapBuffers;
         std::map<std::string, FrElement *> buffers;
         std::map<std::string, Polynomial<Engine> *> polynomials;
@@ -73,6 +79,7 @@ namespace Fflonk {
         std::map<std::string, FrElement *> roots;
         FrElement blindingFactors[10];
 
+        Keccak256Transcript<Engine> *transcript;
         SnarkProof<Engine> *proof;
     public:
         FflonkProver(Engine &E);

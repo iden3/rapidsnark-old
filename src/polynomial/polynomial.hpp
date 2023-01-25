@@ -4,7 +4,7 @@
 #include "assert.h"
 #include <sstream>
 #include <gmp.h>
-#include "fft.hpp"
+#include "fft2.hpp"
 
 
 template<typename Engine>
@@ -12,12 +12,13 @@ class Polynomial {
     using FrElement = typename Engine::FrElement;
     using G1Point = typename Engine::G1Point;
 
+    bool createBuffer;
     u_int64_t length;
     u_int64_t degree;
 
     Engine &E;
 
-    void initialize(u_int64_t length, u_int64_t blindLength = 0);
+    void initialize(u_int64_t length, u_int64_t blindLength = 0, bool createBuffer = true);
 
     static Polynomial<Engine>* computeLagrangePolynomial(u_int64_t i, FrElement xArr[], FrElement yArr[], u_int32_t length);
 public:
@@ -25,11 +26,15 @@ public:
 
     Polynomial(Engine &_E, u_int64_t length, u_int64_t blindLength = 0);
 
+    Polynomial(Engine &_E, FrElement *reservedBuffer, u_int64_t length, u_int64_t blindLength = 0);
+
     // From coefficients
     static Polynomial<Engine>* fromCoefficients(Engine &_E, FrElement *coefficients, u_int64_t length, u_int64_t blindLength = 0);
 
     // From evaluations
     static Polynomial<Engine>* fromEvaluations(Engine &_E, FFT<typename Engine::Fr> *fft, FrElement *evaluations, u_int64_t length, u_int64_t blindLength = 0);
+
+    static Polynomial<Engine>* fromEvaluations(Engine &_E, FFT<typename Engine::Fr> *fft, FrElement *evaluations, FrElement *reservedBuffer, u_int64_t length, u_int64_t blindLength = 0);
 
     ~Polynomial();
 
@@ -70,6 +75,8 @@ public:
     void divByMonic(uint32_t m, FrElement beta);
 
     Polynomial<Engine>* divByVanishing(uint32_t m, FrElement beta);
+
+    Polynomial<Engine>* divByVanishing(FrElement *reservedBuffer, uint32_t m, FrElement beta);
 
     void divZh(u_int64_t domainSize);
 

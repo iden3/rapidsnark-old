@@ -7,10 +7,16 @@
 using namespace CPlusPlusLogging;
 
 template<typename Engine>
-void Polynomial<Engine>::initialize(u_int64_t length, u_int64_t blindLength) {
+void Polynomial<Engine>::initialize(u_int64_t length, u_int64_t blindLength, bool createBuffer) {
+    this->createBuffer = createBuffer;
     u_int64_t totalLength = length + blindLength;
-    coef = new FrElement[totalLength];
-    memset(coef, 0, totalLength * sizeof(FrElement));
+    if(createBuffer) {
+        coef = new FrElement[totalLength];
+    }
+
+    int nThreads = omp_get_max_threads() / 2;
+    ThreadUtils::parset(coef, 0, totalLength * sizeof(FrElement), nThreads);
+    //memset(coef, 0, totalLength * sizeof(FrElement));
     this->length = totalLength;
     degree = 0;
 }
@@ -18,6 +24,12 @@ void Polynomial<Engine>::initialize(u_int64_t length, u_int64_t blindLength) {
 template<typename Engine>
 Polynomial<Engine>::Polynomial(Engine &_E, u_int64_t length, u_int64_t blindLength) : E(_E) {
     this->initialize(length, blindLength);
+}
+
+template<typename Engine>
+Polynomial<Engine>::Polynomial(Engine &_E, FrElement *reservedBuffer, u_int64_t length, u_int64_t blindLength) : E(_E) {
+    this->coef = reservedBuffer;
+    this->initialize(length, blindLength, false);
 }
 
 template<typename Engine>
@@ -49,8 +61,25 @@ Polynomial<Engine>::fromEvaluations(Engine &_E, FFT<typename Engine::Fr> *fft, F
 }
 
 template<typename Engine>
+Polynomial<Engine> *
+Polynomial<Engine>::fromEvaluations(Engine &_E, FFT<typename Engine::Fr> *fft, FrElement *evaluations, FrElement *reservedBuffer, u_int64_t length, u_int64_t blindLength) {
+    Polynomial<Engine> *pol = new Polynomial<Engine>(_E, reservedBuffer, length, blindLength);
+
+    int nThreads = omp_get_max_threads() / 2;
+    ThreadUtils::parcpy(pol->coef, evaluations, length * sizeof(FrElement), nThreads);
+
+    fft->ifft(pol->coef, length);
+
+    pol->fixDegree();
+
+    return pol;
+}
+
+template<typename Engine>
 Polynomial<Engine>::~Polynomial() {
-    delete[] this->coef;
+    if(!this->createBuffer) {
+        delete[] this->coef;
+    }
 }
 
 template<typename Engine>
@@ -132,12 +161,12 @@ typename Engine::FrElement Polynomial<Engine>::fastEvaluate(FrElement point) con
     uint64_t coefsThread = nCoefs / nThreads;
     uint64_t residualCoefs = nCoefs - coefsThread * nThreads;
 
-    FrElement res[nThreads];
+    FrElement res[nThreads * 4];
     FrElement xN[nThreads];
 
     xN[0] = E.fr.one();
 
-#pragma omp parallel for
+    #pragma omp parallel for
     for (int i = 0; i < nThreads; i++) {
         res[i] = E.fr.zero();
 
@@ -352,6 +381,37 @@ Polynomial<Engine> *Polynomial<Engine>::divByVanishing(uint32_t m, FrElement bet
     }
 
     fixDegree();
+    polR->fixDegree();
+
+    return polR;
+}
+
+template<typename Engine>
+Polynomial<Engine> *Polynomial<Engine>::divByVanishing(FrElement *reservedBuffer, uint32_t m, FrElement beta) {
+    if(this->degree < m) {
+        throw std::runtime_error("divByVanishing polynomial divisor must be of degree lower than the dividend polynomial");
+    }
+
+    Polynomial<Engine> *polR = new Polynomial<Engine>(this->E, reservedBuffer, this->length);
+
+    int nThreads = omp_get_max_threads() / 2;
+    ThreadUtils::parcpy(reservedBuffer, coef, this->length * sizeof(FrElement), nThreads);
+    ThreadUtils::parset(coef, 0, this->length * sizeof(FrElement), nThreads);
+
+#pragma omp parallel for
+    for (int k = 0; k < m; k++) {
+        for (int32_t i = this->length - 1 - k; i >= m; i = i - m) {
+            FrElement leadingCoef = polR->coef[i];
+            if (E.fr.eq(E.fr.zero(), leadingCoef)) continue;
+
+            polR->coef[i] = E.fr.zero();
+            polR->coef[i - m] = E.fr.add(polR->coef[i - m], E.fr.mul(beta, leadingCoef));
+            this->coef[i - m] = E.fr.add(this->coef[i - m], leadingCoef);
+        }
+    }
+
+    fixDegree();
+
     polR->fixDegree();
 
     return polR;
