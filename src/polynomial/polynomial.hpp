@@ -52,7 +52,14 @@ public:
 
     u_int64_t getDegree() const;
 
-    typename Engine::FrElement evaluate(FrElement point) const;
+    inline typename Engine::FrElement evaluate(FrElement point) const {
+        FrElement result = E.fr.zero();
+
+        for (u_int64_t i = degree + 1; i > 0; i--) {
+            result = E.fr.add(coef[i - 1], E.fr.mul(result, point));
+        }
+        return result;
+    }
 
     typename Engine::FrElement fastEvaluate(FrElement point) const;
 

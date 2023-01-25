@@ -143,15 +143,15 @@ u_int64_t Polynomial<Engine>::getDegree() const {
     return degree;
 }
 
-template<typename Engine>
-typename Engine::FrElement Polynomial<Engine>::evaluate(FrElement point) const {
-    FrElement result = E.fr.zero();
-
-    for (u_int64_t i = degree + 1; i > 0; i--) {
-        result = E.fr.add(coef[i - 1], E.fr.mul(result, point));
-    }
-    return result;
-}
+//template<typename Engine>
+//typename Engine::FrElement Polynomial<Engine>::evaluate(FrElement point) const {
+//    FrElement result = E.fr.zero();
+//
+//    for (u_int64_t i = degree + 1; i > 0; i--) {
+//        result = E.fr.add(coef[i - 1], E.fr.mul(result, point));
+//    }
+//    return result;
+//}
 
 template<typename Engine>
 typename Engine::FrElement Polynomial<Engine>::fastEvaluate(FrElement point) const {
@@ -385,6 +385,38 @@ Polynomial<Engine> *Polynomial<Engine>::divByVanishing(uint32_t m, FrElement bet
 
     return polR;
 }
+
+
+//template<typename Engine>
+//Polynomial<Engine> *Polynomial<Engine>::divByVanishingMulti(uint32_t m[], FrElement beta[], uint32_t length) {
+//    if(this->degree < m) {
+//        throw std::runtime_error("divByVanishing polynomial divisor must be of degree lower than the dividend polynomial");
+//    }
+//
+//    Polynomial<Engine> *polR = new Polynomial<Engine>(this->E, this->length);
+//    FrElement *ptr = this->coef;
+//    this->coef = polR->coef;
+//    polR->coef = ptr;
+//
+//    for(uint32_t l=0;l<length;l++) {
+//#pragma omp parallel for
+//        for (int k = 0; k < m[l]; k++) {
+//            for (int32_t i = this->length - 1 - k; i >= m[l]; i = i - m[l]) {
+//                FrElement leadingCoef = polR->coef[i];
+//                if (E.fr.eq(E.fr.zero(), leadingCoef)) continue;
+//
+//                polR->coef[i] = E.fr.zero();
+//                polR->coef[i - m[l]] = E.fr.add(polR->coef[i - m[l]], E.fr.mul(beta[l], leadingCoef));
+//                this->coef[i - m[l]] = E.fr.add(this->coef[i - m[l]], leadingCoef);
+//            }
+//        }
+//    }
+//
+//    fixDegree();
+//    polR->fixDegree();
+//
+//    return polR;
+//}
 
 template<typename Engine>
 Polynomial<Engine> *Polynomial<Engine>::divByVanishing(FrElement *reservedBuffer, uint32_t m, FrElement beta) {
