@@ -466,8 +466,6 @@ void Polynomial<Engine>::fastDivByVanishing(FrElement *reservedBuffer, uint32_t 
     ThreadUtils::parcpy(reservedBuffer, coef, this->length * sizeof(FrElement), nThreads);
     ThreadUtils::parset(coef, 0, this->length * sizeof(FrElement), nThreads);
 
-    std::cout << "nThreads" << nThreads << "\n";
-
     // STEP 1: Setejar els m valors del següent bucket al chunk actual
     #pragma omp parallel for
     for (int k = 0; k < nThreads; k++) {

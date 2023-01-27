@@ -1309,13 +1309,13 @@ namespace Fflonk {
         LOG_TRACE("> Computing W = F / ZT polynomial");
 
         LOG_TRACE("··· Computing W = F / ZT_S0 polynomial");
-        polynomials["F"]->divByVanishing(polPtr["remainder"], 8, challenges["xi"]);
+        polynomials["F"]->fastDivByVanishing(polPtr["remainder"], 8, challenges["xi"]);
         LOG_TRACE("··· Computing W = F / ZT_S1 polynomial");
-        polynomials["F"]->divByVanishing(polPtr["remainder"], 4, challenges["xi"]);
+        polynomials["F"]->fastDivByVanishing(polPtr["remainder"], 4, challenges["xi"]);
         LOG_TRACE("··· Computing W = F / ZT_S2 polynomial");
-        polynomials["F"]->divByVanishing(polPtr["remainder"], 3, challenges["xi"]);
+        polynomials["F"]->fastDivByVanishing(polPtr["remainder"], 3, challenges["xi"]);
         LOG_TRACE("··· Computing W = F / ZT_S3 polynomial");
-        polynomials["F"]->divByVanishing(polPtr["remainder"], 3, challenges["xiw"]);
+        polynomials["F"]->fastDivByVanishing(polPtr["remainder"], 3, challenges["xiw"]);
 
         takeTime(TR4, "Computing F divBy T");
 
