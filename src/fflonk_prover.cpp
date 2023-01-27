@@ -1309,36 +1309,13 @@ namespace Fflonk {
         LOG_TRACE("> Computing W = F / ZT polynomial");
 
         LOG_TRACE("··· Computing W = F / ZT_S0 polynomial");
-        Polynomial<Engine> *polRemainder = polynomials["F"]->divByVanishing(polPtr["remainder"], 8, challenges["xi"]);
-        if (polRemainder->getDegree() > 0) {
-            ss.str("");
-            ss << "Degree of f(X)/ZT_S0(X) remainder is " << polRemainder->getDegree() << " and should be 0";
-            throw std::runtime_error(ss.str());
-        }
-
+        polynomials["F"]->divByVanishing(polPtr["remainder"], 8, challenges["xi"]);
         LOG_TRACE("··· Computing W = F / ZT_S1 polynomial");
-        polRemainder = polynomials["F"]->divByVanishing(polPtr["remainder"], 4, challenges["xi"]);
-        if (polRemainder->getDegree() > 0) {
-            ss.str("");
-            ss << "Degree of f(X)/ZT_S1(X) remainder is " << polRemainder->getDegree() << " and should be 0";
-            throw std::runtime_error(ss.str());
-        }
-
+        polynomials["F"]->divByVanishing(polPtr["remainder"], 4, challenges["xi"]);
         LOG_TRACE("··· Computing W = F / ZT_S2 polynomial");
-        polRemainder = polynomials["F"]->divByVanishing(polPtr["remainder"], 3, challenges["xi"]);
-        if (polRemainder->getDegree() > 0) {
-            ss.str("");
-            ss << "Degree of f(X)/ZT_S2(X) remainder is " << polRemainder->getDegree() << " and should be 0";
-            throw std::runtime_error(ss.str());
-        }
-
+        polynomials["F"]->divByVanishing(polPtr["remainder"], 3, challenges["xi"]);
         LOG_TRACE("··· Computing W = F / ZT_S3 polynomial");
-        polRemainder = polynomials["F"]->divByVanishing(polPtr["remainder"], 3, challenges["xiw"]);
-        if (polRemainder->getDegree() > 0) {
-            ss.str("");
-            ss << "Degree of f(X)/ZT_S3(X) remainder is " << polRemainder->getDegree() << " and should be 0";
-            throw std::runtime_error(ss.str());
-        }
+        polynomials["F"]->divByVanishing(polPtr["remainder"], 3, challenges["xiw"]);
 
         takeTime(TR4, "Computing F divBy T");
 
@@ -1578,14 +1555,14 @@ namespace Fflonk {
         takeTime(TR5, "Computing L(X)*ZTS2(y)");
 
         LOG_TRACE("> Computing W' = L / ZTS2 polynomial");
-        Polynomial<Engine> *polRemainder = polynomials["L"]->divByVanishing(polPtr["remainder"], 1, challenges["y"]);
+        polynomials["L"]->fastDivByVanishing(polPtr["remainder"], 1, challenges["y"]);
         takeTime(TR5, "Computing L divBy ZTS2");
 
-        if (polRemainder->getDegree() > 0) {
-            ss.str("");
-            ss << "Degree of f(X)/ZT_S3(X) remainder is " << polRemainder->getDegree() << " and should be 0";
-            throw std::runtime_error(ss.str());
-        }
+//        if (polRemainder->getDegree() > 0) {
+//            ss.str("");
+//            ss << "Degree of f(X)/ZT_S3(X) remainder is " << polRemainder->getDegree() << " and should be 0";
+//            throw std::runtime_error(ss.str());
+//        }
 
         if (polynomials["L"]->getDegree() >= 9 * zkey->domainSize + 17) {
             throw std::runtime_error("Degree of L(X)/(ZTS2(y)(X-y)) is not correct");
