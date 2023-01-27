@@ -4,7 +4,7 @@
 #include "assert.h"
 #include <sstream>
 #include <gmp.h>
-#include "fft2.hpp"
+#include "fft.hpp"
 #include "polynomial.hpp"
 
 template<typename Engine>

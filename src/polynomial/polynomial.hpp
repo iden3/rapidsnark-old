@@ -4,7 +4,7 @@
 #include "assert.h"
 #include <sstream>
 #include <gmp.h>
-#include "fft2.hpp"
+#include "fft.hpp"
 
 
 template<typename Engine>

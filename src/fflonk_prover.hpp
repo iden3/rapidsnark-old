@@ -6,7 +6,7 @@
 #include "snark_proof.hpp"
 #include "binfile_utils.hpp"
 #include <gmp.h>
-#include "fft2.hpp"
+#include "fft.hpp"
 #include "zkey_fflonk.hpp"
 #include "polynomial/polynomial.hpp"
 #include "polynomial/evaluations.hpp"
