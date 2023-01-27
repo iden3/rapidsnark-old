@@ -450,6 +450,103 @@ Polynomial<Engine> *Polynomial<Engine>::divByVanishing(FrElement *reservedBuffer
 }
 
 template<typename Engine>
+void Polynomial<Engine>::fastDivByVanishing(FrElement *reservedBuffer, uint32_t m, FrElement beta) {
+    if(this->degree < m) {
+        throw std::runtime_error("divByVanishing polynomial divisor must be of degree lower than the dividend polynomial");
+    }
+
+    Polynomial<Engine> *polTmp = new Polynomial<Engine>(this->E, reservedBuffer, this->length);
+
+    int nThreads = omp_get_max_threads() / 2;
+    u_int32_t nElements = this->length - m;
+    u_int32_t nElementsBucket = (u_int32_t)(nElements / nThreads / m);
+    u_int32_t nElementsChunk = nElementsBucket * m;
+    u_int32_t nElementsLast = nElements - nThreads * nElementsChunk;
+
+    ThreadUtils::parcpy(reservedBuffer, coef, this->length * sizeof(FrElement), nThreads);
+    ThreadUtils::parset(coef, 0, this->length * sizeof(FrElement), nThreads);
+
+    // STEP 1: Setejar els m valors del següent bucket al chunk actual, PARALEL·LITZAR
+    #pragma omp parallel for
+    for (int k = 0; k < nThreads; k++) {
+        uint32_t idx0 = (k + 1) * nElementsChunk + nElementsLast;
+
+        for (int i = 0; i < m; i++) {
+            coef[idx0 + i - m] = polTmp->coef[idx0 + i];
+        }
+
+        for (uint32_t i = 0; i < nElementsChunk - m; i++) {
+            uint32_t offset = idx0 - i - 1;
+            FrElement val = E.fr.add(polTmp->coef[offset], E.fr.mul(beta, coef[offset]));
+            coef[offset - m] = val;
+        }
+    }
+
+    //STEP 2: Setejar els valors del elements last NO PARAL·LELITZAR
+    int idx0 = nElementsLast;
+    int pending = nElementsLast;
+
+    for (int i = 0; i < m && pending; i++) {
+        coef[idx0 - i - 1] = polTmp->coef[idx0 + m - i - 1];
+        pending--;
+    }
+
+    for (int i = 0; i < pending; i++) {
+        uint32_t offset = idx0 - i - 1;
+        FrElement val = E.fr.add(polTmp->coef[offset], E.fr.mul(beta, coef[offset]));
+        coef[offset - m] = val;
+    }
+
+    //Step 3: calcular acumulats NO  PARALEL·LITZAR
+    FrElement acc[nThreads][m];
+    FrElement betaPow = E.fr.one();
+    for (uint32_t i = 0; i < nElementsBucket; i++) {
+        betaPow = E.fr.mul(betaPow, beta);
+    }
+    FrElement currentBeta = E.fr.one();
+
+    for (int k = nThreads; k > 0; k--) {
+        int idThread = k - 1;
+        uint32_t idx0 = idThread * nElementsChunk + nElementsLast;
+
+        for (int i = 0; i < m; i++) {
+            acc[idThread][i] = coef[idx0 + i];
+
+            if (k != nThreads) {
+                acc[idThread][i] = E.fr.add(acc[idThread][i], E.fr.mul(betaPow, acc[idThread + 1][i]));
+            }
+        }
+        currentBeta = E.fr.mul(currentBeta, betaPow);
+    }
+
+    //STEP 4 recalcular  PARALEL·LITZAR
+    #pragma omp parallel for
+    for (int k = 0; k < nThreads; k++) {
+
+        uint32_t idx0 = k * nElementsChunk + nElementsLast;
+        FrElement currentBeta = beta;
+        int currentM = m - 1;
+
+        uint32_t limit = k == 0 ? nElementsLast : nElementsChunk;
+        for (uint32_t i = 0; i < limit; i++) {
+            uint32_t offset = idx0 - i - 1;
+            FrElement val = E.fr.add(coef[offset], E.fr.mul(currentBeta, acc[k][currentM]));
+
+            coef[offset] = val;
+
+            // To avoid modular operations in each loop...
+            if (currentM == 0) {
+                currentM = m - 1;
+                currentBeta = E.fr.mul(currentBeta, beta);
+            } else {
+                currentM--;
+            }
+        }
+    }
+    fixDegree();
+}
+
+template<typename Engine>
 void Polynomial<Engine>::divZh(u_int64_t domainSize) {
 #pragma omp parallel for
     for (u_int64_t i = 0; i < domainSize; i++) {
