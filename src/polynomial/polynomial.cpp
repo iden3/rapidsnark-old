@@ -457,7 +457,7 @@ void Polynomial<Engine>::fastDivByVanishing(FrElement *reservedBuffer, uint32_t 
 
     Polynomial<Engine> *polTmp = new Polynomial<Engine>(this->E, reservedBuffer, this->length);
 
-    int nThreads = omp_get_max_threads() / 2;
+    int nThreads = omp_get_max_threads();
     u_int32_t nElements = this->length - m;
     u_int32_t nElementsBucket = (u_int32_t)(nElements / nThreads / m);
     u_int32_t nElementsChunk = nElementsBucket * m;
@@ -466,7 +466,9 @@ void Polynomial<Engine>::fastDivByVanishing(FrElement *reservedBuffer, uint32_t 
     ThreadUtils::parcpy(reservedBuffer, coef, this->length * sizeof(FrElement), nThreads);
     ThreadUtils::parset(coef, 0, this->length * sizeof(FrElement), nThreads);
 
-    // STEP 1: Setejar els m valors del següent bucket al chunk actual, PARALEL·LITZAR
+    std::cout << "nThreads" << nThreads << "\n";
+
+    // STEP 1: Setejar els m valors del següent bucket al chunk actual
     #pragma omp parallel for
     for (int k = 0; k < nThreads; k++) {
         uint32_t idx0 = (k + 1) * nElementsChunk + nElementsLast;
@@ -497,7 +499,7 @@ void Polynomial<Engine>::fastDivByVanishing(FrElement *reservedBuffer, uint32_t 
         coef[offset - m] = val;
     }
 
-    //Step 3: calcular acumulats NO  PARALEL·LITZAR
+    //Step 3: calcular acumulats
     FrElement acc[nThreads][m];
     FrElement betaPow = E.fr.one();
     for (uint32_t i = 0; i < nElementsBucket; i++) {
@@ -519,10 +521,9 @@ void Polynomial<Engine>::fastDivByVanishing(FrElement *reservedBuffer, uint32_t 
         currentBeta = E.fr.mul(currentBeta, betaPow);
     }
 
-    //STEP 4 recalcular  PARALEL·LITZAR
+    //STEP 4 recalcular
     #pragma omp parallel for
     for (int k = 0; k < nThreads; k++) {
-
         uint32_t idx0 = k * nElementsChunk + nElementsLast;
         FrElement currentBeta = beta;
         int currentM = m - 1;
