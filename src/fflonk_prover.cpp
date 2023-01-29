@@ -748,8 +748,6 @@ namespace Fflonk {
     // ROUND 2
     template<typename Engine>
     void FflonkProver<Engine>::round2() {
-        takeTime(T2, "Starting Round 2");
-
         // STEP 2.1 - Compute permutation challenge beta and gamma ∈ F
         // Compute permutation challenge beta
         LOG_TRACE("> Computing challenges beta and gamma");
@@ -1102,8 +1100,6 @@ namespace Fflonk {
     // ROUND 3
     template<typename Engine>
     void FflonkProver<Engine>::round3() {
-        takeTime(T2, "Starting round 3");
-
         LOG_TRACE("> Computing challenge xi");
         // STEP 3.1 - Compute evaluation challenge xi ∈ S
         transcript->reset();
@@ -1226,8 +1222,6 @@ namespace Fflonk {
     // ROUND 4
     template<typename Engine>
     void FflonkProver<Engine>::round4() {
-        takeTime(T2, "Starting round 4");
-
         LOG_TRACE("> Computing challenge alpha");
 
         // STEP 4.1 - Compute challenge alpha ∈ F
@@ -1494,8 +1488,6 @@ namespace Fflonk {
     // ROUND 5
     template<typename Engine>
     void FflonkProver<Engine>::round5() {
-        takeTime(T2, "Starting round 5");
-
         // STEP 5.1 - Compute random evaluation point y ∈ F
         // STEP 4.1 - Compute challenge alpha ∈ F
         LOG_TRACE("> Computing challenge y");
