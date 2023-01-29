@@ -37,13 +37,6 @@ namespace Fflonk {
 
         std::vector <ProcessingTime> T1;
         std::vector <ProcessingTime> T2;
-        std::vector <ProcessingTime> TR1;
-        std::vector <ProcessingTime> TR2;
-        std::vector <ProcessingTime> TR3;
-        std::vector <ProcessingTime> TR4;
-        std::vector <ProcessingTime> TR5;
-        std::vector <ProcessingTime> TR;
-
 
         Engine &E;
         FFT<typename Engine::Fr> *fft = NULL;
