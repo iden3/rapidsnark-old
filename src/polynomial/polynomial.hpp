@@ -40,6 +40,8 @@ public:
 
     void fixDegree();
 
+    void fixDegreeFrom(uint64_t initial);
+
     bool isEqual(const Polynomial<Engine> &other) const;
 
     void blindCoefficients(FrElement blindingFactors[], u_int32_t length);

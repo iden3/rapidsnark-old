@@ -90,6 +90,13 @@ void Polynomial<Engine>::fixDegree() {
 }
 
 template<typename Engine>
+void Polynomial<Engine>::fixDegreeFrom(u_int64_t initial) {
+    u_int64_t degree;
+    for (degree = initial; degree != 0 && this->E.fr.isZero(coef[degree]); degree--);
+    this->degree = degree;
+}
+
+template<typename Engine>
 bool Polynomial<Engine>::isEqual(const Polynomial<Engine> &other) const {
     if (degree != other.degree) {
         return false;
@@ -467,82 +474,87 @@ void Polynomial<Engine>::fastDivByVanishing(FrElement *reservedBuffer, uint32_t 
     ThreadUtils::parset(coef, 0, this->length * sizeof(FrElement), nThreads);
 
     // STEP 1: Setejar els m valors del següent bucket al chunk actual
-    #pragma omp parallel for
-    for (int k = 0; k < nThreads; k++) {
-        uint32_t idx0 = (k + 1) * nElementsChunk + nElementsLast;
+    #pragma omp parallel {
+        #pragma omp for {
+            for (int k = 0; k < nThreads; k++) {
+                uint32_t idx0 = (k + 1) * nElementsChunk + nElementsLast;
 
-        for (int i = 0; i < m; i++) {
-            coef[idx0 + i - m] = polTmp->coef[idx0 + i];
+                for (int i = 0; i < m; i++) {
+                    coef[idx0 + i - m] = polTmp->coef[idx0 + i];
+                }
+
+                for (uint32_t i = 0; i < nElementsChunk - m; i++) {
+                    uint32_t offset = idx0 - i - 1;
+                    FrElement val = E.fr.add(polTmp->coef[offset], E.fr.mul(beta, coef[offset]));
+                    coef[offset - m] = val;
+                }
+            }
         }
 
-        for (uint32_t i = 0; i < nElementsChunk - m; i++) {
+        //STEP 2: Setejar els valors del elements last NO PARAL·LELITZAR
+        int idx0 = nElementsLast;
+        int pending = nElementsLast;
+
+        for (int i = 0; i < m && pending; i++) {
+            coef[idx0 - i - 1] = polTmp->coef[idx0 + m - i - 1];
+            pending--;
+        }
+
+        for (int i = 0; i < pending; i++) {
             uint32_t offset = idx0 - i - 1;
             FrElement val = E.fr.add(polTmp->coef[offset], E.fr.mul(beta, coef[offset]));
             coef[offset - m] = val;
         }
-    }
 
-    //STEP 2: Setejar els valors del elements last NO PARAL·LELITZAR
-    int idx0 = nElementsLast;
-    int pending = nElementsLast;
-
-    for (int i = 0; i < m && pending; i++) {
-        coef[idx0 - i - 1] = polTmp->coef[idx0 + m - i - 1];
-        pending--;
-    }
-
-    for (int i = 0; i < pending; i++) {
-        uint32_t offset = idx0 - i - 1;
-        FrElement val = E.fr.add(polTmp->coef[offset], E.fr.mul(beta, coef[offset]));
-        coef[offset - m] = val;
-    }
-
-    //Step 3: calcular acumulats
-    FrElement acc[nThreads][m];
-    FrElement betaPow = E.fr.one();
-    for (uint32_t i = 0; i < nElementsBucket; i++) {
-        betaPow = E.fr.mul(betaPow, beta);
-    }
-    FrElement currentBeta = E.fr.one();
-
-    for (int k = nThreads; k > 0; k--) {
-        int idThread = k - 1;
-        uint32_t idx0 = idThread * nElementsChunk + nElementsLast;
-
-        for (int i = 0; i < m; i++) {
-            acc[idThread][i] = coef[idx0 + i];
-
-            if (k != nThreads) {
-                acc[idThread][i] = E.fr.add(acc[idThread][i], E.fr.mul(betaPow, acc[idThread + 1][i]));
-            }
+        //Step 3: calcular acumulats
+        FrElement acc[nThreads][m];
+        FrElement betaPow = E.fr.one();
+        for (uint32_t i = 0; i < nElementsBucket; i++) {
+            betaPow = E.fr.mul(betaPow, beta);
         }
-        currentBeta = E.fr.mul(currentBeta, betaPow);
-    }
+        FrElement currentBeta = E.fr.one();
 
-    //STEP 4 recalcular
-    #pragma omp parallel for
-    for (int k = 0; k < nThreads; k++) {
-        uint32_t idx0 = k * nElementsChunk + nElementsLast;
-        FrElement currentBeta = beta;
-        int currentM = m - 1;
+        for (int k = nThreads; k > 0; k--) {
+            int idThread = k - 1;
+            uint32_t idx0 = idThread * nElementsChunk + nElementsLast;
 
-        uint32_t limit = k == 0 ? nElementsLast : nElementsChunk;
-        for (uint32_t i = 0; i < limit; i++) {
-            uint32_t offset = idx0 - i - 1;
-            FrElement val = E.fr.add(coef[offset], E.fr.mul(currentBeta, acc[k][currentM]));
+            for (int i = 0; i < m; i++) {
+                acc[idThread][i] = coef[idx0 + i];
 
-            coef[offset] = val;
+                if (k != nThreads) {
+                    acc[idThread][i] = E.fr.add(acc[idThread][i], E.fr.mul(betaPow, acc[idThread + 1][i]));
+                }
+            }
+            currentBeta = E.fr.mul(currentBeta, betaPow);
+        }
 
-            // To avoid modular operations in each loop...
-            if (currentM == 0) {
-                currentM = m - 1;
-                currentBeta = E.fr.mul(currentBeta, beta);
-            } else {
-                currentM--;
+        //STEP 4 recalcular
+        #pragma omp for {
+            for (int k = 0; k < nThreads; k++) {
+                uint32_t idx0 = k * nElementsChunk + nElementsLast;
+                FrElement currentBeta = beta;
+                int currentM = m - 1;
+
+                uint32_t limit = k == 0 ? nElementsLast : nElementsChunk;
+                for (uint32_t i = 0; i < limit; i++) {
+                    uint32_t offset = idx0 - i - 1;
+                    FrElement val = E.fr.add(coef[offset], E.fr.mul(currentBeta, acc[k][currentM]));
+
+                    coef[offset] = val;
+
+                    // To avoid modular operations in each loop...
+                    if (currentM == 0) {
+                        currentM = m - 1;
+                        currentBeta = E.fr.mul(currentBeta, beta);
+                    } else {
+                        currentM--;
+                    }
+                }
             }
         }
     }
-    fixDegree();
+
+    fixDegreeFrom(this->degree+1);
 }
 
 template<typename Engine>
