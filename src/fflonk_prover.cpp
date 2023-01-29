@@ -544,12 +544,11 @@ namespace Fflonk {
     void FflonkProver<Engine>::computeWirePolynomial(std::string polName, FrElement blindingFactors[]) {
 
         // Compute all witness from signal ids and set them to the polynomial buffers
-#pragma omp parallel for
+        #pragma omp parallel for
         for (u_int32_t i = 0; i < zkey->nConstraints; ++i) {
             FrElement witness = getWitness(mapBuffers[polName][i]);
             E.fr.toMontgomery(buffers[polName][i], witness);
         }
-
 
         // Create the polynomial
         // and compute the coefficients of the wire polynomials from evaluations
@@ -941,9 +940,8 @@ namespace Fflonk {
         takeTime(T2, "ifft T1 ");
 
         // Divide the polynomial T1 by Z_H(X)
-//        processingTime.push_back(ProcessingTime("T1 divZh ini", high_resolution_clock::now()));
         polynomials["T1"]->divZh(zkey->domainSize);
-//        processingTime.push_back(ProcessingTime("T1 divZh fi", high_resolution_clock::now()));
+        takeTime(T2, "T1 divZh");
 
         // Compute the coefficients of the polynomial T1z(X) from buffers.T1z
         LOG_TRACE("··· Computing T1z ifft");
@@ -1039,9 +1037,8 @@ namespace Fflonk {
         takeTime(T2, "ifft T2 ");
 
         // Divide the polynomial T2 by Z_H(X)
-//        processingTime.push_back(ProcessingTime("T2 divZh ini", high_resolution_clock::now()));
         polynomials["T2"]->divZh(zkey->domainSize);
-//        processingTime.push_back(ProcessingTime("T2 divZh fi", high_resolution_clock::now()));
+        takeTime(T2, "T2 divZh");
 
         // Compute the coefficients of the polynomial T2z(X) from buffers.T2z
         LOG_TRACE("··· Computing T2z ifft");
@@ -1232,7 +1229,6 @@ namespace Fflonk {
         takeTime(T2, "Starting round 4");
 
         LOG_TRACE("> Computing challenge alpha");
-//        processingTime.push_back(ProcessingTime("inici round4()", high_resolution_clock::now()));
 
         // STEP 4.1 - Compute challenge alpha ∈ F
         transcript->reset();
@@ -1252,7 +1248,6 @@ namespace Fflonk {
         transcript->addScalar(proof->getEvaluationCommitment("t1w"));
         transcript->addScalar(proof->getEvaluationCommitment("t2w"));
         challenges["alpha"] = transcript->getChallenge();
-//        processingTime.push_back(ProcessingTime("evaluations", high_resolution_clock::now()));
 
         std::ostringstream ss;
         ss << "··· challenges.alpha: " << E.fr.toString(challenges["alpha"]);
@@ -1268,6 +1263,7 @@ namespace Fflonk {
                             (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_C0_SECTION),
                             sDomain * 8, nThreads);
         polynomials["C0"]->fixDegree();
+        takeTime(T2, "Reading R0 polynomial");
 
         LOG_TRACE("> Computing R0 polynomial");
         computeR0();
@@ -1321,10 +1317,9 @@ namespace Fflonk {
         // Compute the coefficients of R0(X) from 8 evaluations using lagrange interpolation. R0(X) ∈ F_{<8}[X]
         // We decide to use Lagrange interpolations because the R0 degree is very small (deg(R0)===7),
         // and we were not able to compute it using current ifft implementation because the omega are different
-        //processingTime.push_back(ProcessingTime("computeR0 2", high_resolution_clock::now()));
         FrElement xArr[8] = {roots["S0h0"][0], roots["S0h0"][1], roots["S0h0"][2], roots["S0h0"][3],
                              roots["S0h0"][4], roots["S0h0"][5], roots["S0h0"][6], roots["S0h0"][7]};
-        //processingTime.push_back(ProcessingTime("computeR0 3", high_resolution_clock::now()));
+
         FrElement yArr[8] = {polynomials["C0"]->fastEvaluate(roots["S0h0"][0]),
                              polynomials["C0"]->fastEvaluate(roots["S0h0"][1]),
                              polynomials["C0"]->fastEvaluate(roots["S0h0"][2]),
@@ -1333,10 +1328,8 @@ namespace Fflonk {
                              polynomials["C0"]->fastEvaluate(roots["S0h0"][5]),
                              polynomials["C0"]->fastEvaluate(roots["S0h0"][6]),
                              polynomials["C0"]->fastEvaluate(roots["S0h0"][7])};
-        //processingTime.push_back(ProcessingTime("computeR0 4", high_resolution_clock::now()));
 
         polynomials["R0"] = Polynomial<Engine>::lagrangePolynomialInterpolation(xArr, yArr, 8);
-        //processingTime.push_back(ProcessingTime("computeR0 5", high_resolution_clock::now()));
 
         // Check the degree of R0(X) < 8
         if (polynomials["R0"]->getDegree() > 7) {
@@ -1347,8 +1340,6 @@ namespace Fflonk {
     template<typename Engine>
     void FflonkProver<Engine>::computeR1() {
 
-//        processingTime.push_back(ProcessingTime("computeR1 1", high_resolution_clock::now()));
-
         // COMPUTE R1
         // Compute the coefficients of R1(X) from 4 evaluations using lagrange interpolation. R1(X) ∈ F_{<4}[X]
         // We decide to use Lagrange interpolations because the R1 degree is very small (deg(R1)===3),
@@ -1358,10 +1349,8 @@ namespace Fflonk {
                              polynomials["C1"]->fastEvaluate(roots["S1h1"][1]),
                              polynomials["C1"]->fastEvaluate(roots["S1h1"][2]),
                              polynomials["C1"]->fastEvaluate(roots["S1h1"][3])};
-        //processingTime.push_back(ProcessingTime("computeR1 2", high_resolution_clock::now()));
 
         polynomials["R1"] = Polynomial<Engine>::lagrangePolynomialInterpolation(xArr, yArr, 4);
-        //processingTime.push_back(ProcessingTime("computeR1 3", high_resolution_clock::now()));
 
         // Check the degree of r1(X) < 4
         if (polynomials["R1"]->getDegree() > 3) {
@@ -1371,24 +1360,21 @@ namespace Fflonk {
 
     template<typename Engine>
     void FflonkProver<Engine>::computeR2() {
-        //processingTime.push_back(ProcessingTime("computeR2 1", high_resolution_clock::now()));
         // COMPUTE R2
         // Compute the coefficients of r2(X) from 6 evaluations using lagrange interpolation. r2(X) ∈ F_{<6}[X]
         // We decide to use Lagrange interpolations because the R2.degree is very small (deg(R2)===5),
         // and we were not able to compute it using current ifft implementation because the omega are different
         FrElement xArr[6] = {roots["S2h2"][0], roots["S2h2"][1], roots["S2h2"][2],
                              roots["S2h3"][0], roots["S2h3"][1], roots["S2h3"][2]};
-        //processingTime.push_back(ProcessingTime("computeR2 2", high_resolution_clock::now()));
+
         FrElement yArr[6] = {polynomials["C2"]->fastEvaluate(roots["S2h2"][0]),
                              polynomials["C2"]->fastEvaluate(roots["S2h2"][1]),
                              polynomials["C2"]->fastEvaluate(roots["S2h2"][2]),
                              polynomials["C2"]->fastEvaluate(roots["S2h3"][0]),
                              polynomials["C2"]->fastEvaluate(roots["S2h3"][1]),
                              polynomials["C2"]->fastEvaluate(roots["S2h3"][2])};
-        //processingTime.push_back(ProcessingTime("computeR2 3", high_resolution_clock::now()));
 
         polynomials["R2"] = Polynomial<Engine>::lagrangePolynomialInterpolation(xArr, yArr, 6);
-        //processingTime.push_back(ProcessingTime("computeR2 4", high_resolution_clock::now()));
 
         // Check the degree of r2(X) < 6
         if (polynomials["R2"]->getDegree() > 5) {
