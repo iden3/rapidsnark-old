@@ -162,24 +162,24 @@ typename Engine::FrElement Polynomial<Engine>::fastEvaluate(FrElement point) con
     uint64_t residualCoefs = nCoefs - coefsThread * nThreads;
 
     FrElement res[nThreads * 4];
-    FrElement xN[nThreads];
+    FrElement xN[nThreads * 4];
 
     xN[0] = E.fr.one();
 
     #pragma omp parallel for
     for (int i = 0; i < nThreads; i++) {
-        res[i] = E.fr.zero();
+        res[i*4] = E.fr.zero();
 
         uint64_t nCoefs = i == (nThreads - 1) ? coefsThread + residualCoefs : coefsThread;
         for (u_int64_t j = nCoefs; j > 0; j--) {
-            res[i] = E.fr.add(coef[(i * coefsThread) + j - 1], E.fr.mul(res[i], point));
+            res[i*4] = E.fr.add(coef[(i * coefsThread) + j - 1], E.fr.mul(res[i*4], point));
 
             if (i == 0) xN[0] = E.fr.mul(xN[0], point);
         }
     }
 
     for (uint i = 1; i < nThreads; i++) {
-        res[0] = E.fr.add(res[0], E.fr.mul(xN[i - 1], res[i]));
+        res[0] = E.fr.add(res[0], E.fr.mul(xN[i - 1], res[i*4]));
         xN[i] = E.fr.mul(xN[i - 1], xN[0]);
     }
 
