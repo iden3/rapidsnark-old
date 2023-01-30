@@ -474,20 +474,20 @@ void Polynomial<Engine>::fastDivByVanishing(FrElement *reservedBuffer, uint32_t 
     ThreadUtils::parset(coef, 0, this->length * sizeof(FrElement), nThreads);
 
     // STEP 1: Setejar els m valors del següent bucket al chunk actual
-    #pragma omp parallel {
-        #pragma omp for {
-            for (int k = 0; k < nThreads; k++) {
-                uint32_t idx0 = (k + 1) * nElementsChunk + nElementsLast;
+    #pragma omp parallel
+    {
+        #pragma omp for
+        for (int k = 0; k < nThreads; k++) {
+            uint32_t idx0 = (k + 1) * nElementsChunk + nElementsLast;
 
-                for (int i = 0; i < m; i++) {
-                    coef[idx0 + i - m] = polTmp->coef[idx0 + i];
-                }
+            for (int i = 0; i < m; i++) {
+                coef[idx0 + i - m] = polTmp->coef[idx0 + i];
+            }
 
-                for (uint32_t i = 0; i < nElementsChunk - m; i++) {
-                    uint32_t offset = idx0 - i - 1;
-                    FrElement val = E.fr.add(polTmp->coef[offset], E.fr.mul(beta, coef[offset]));
-                    coef[offset - m] = val;
-                }
+            for (uint32_t i = 0; i < nElementsChunk - m; i++) {
+                uint32_t offset = idx0 - i - 1;
+                FrElement val = E.fr.add(polTmp->coef[offset], E.fr.mul(beta, coef[offset]));
+                coef[offset - m] = val;
             }
         }
 
@@ -529,26 +529,25 @@ void Polynomial<Engine>::fastDivByVanishing(FrElement *reservedBuffer, uint32_t 
         }
 
         //STEP 4 recalcular
-        #pragma omp for {
-            for (int k = 0; k < nThreads; k++) {
-                uint32_t idx0 = k * nElementsChunk + nElementsLast;
-                FrElement currentBeta = beta;
-                int currentM = m - 1;
+        #pragma omp for
+        for (int k = 0; k < nThreads; k++) {
+            uint32_t idx0 = k * nElementsChunk + nElementsLast;
+            FrElement currentBeta = beta;
+            int currentM = m - 1;
 
-                uint32_t limit = k == 0 ? nElementsLast : nElementsChunk;
-                for (uint32_t i = 0; i < limit; i++) {
-                    uint32_t offset = idx0 - i - 1;
-                    FrElement val = E.fr.add(coef[offset], E.fr.mul(currentBeta, acc[k][currentM]));
+            uint32_t limit = k == 0 ? nElementsLast : nElementsChunk;
+            for (uint32_t i = 0; i < limit; i++) {
+                uint32_t offset = idx0 - i - 1;
+                FrElement val = E.fr.add(coef[offset], E.fr.mul(currentBeta, acc[k][currentM]));
 
-                    coef[offset] = val;
+                coef[offset] = val;
 
-                    // To avoid modular operations in each loop...
-                    if (currentM == 0) {
-                        currentM = m - 1;
-                        currentBeta = E.fr.mul(currentBeta, beta);
-                    } else {
-                        currentM--;
-                    }
+                // To avoid modular operations in each loop...
+                if (currentM == 0) {
+                    currentM = m - 1;
+                    currentBeta = E.fr.mul(currentBeta, beta);
+                } else {
+                    currentM--;
                 }
             }
         }
