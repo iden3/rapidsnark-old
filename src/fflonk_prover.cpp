@@ -8,6 +8,7 @@
 #include "mul_z.hpp"
 #include "logger.hpp"
 #include "thread_utils.hpp"
+#include "polynomial/cpolynomial.hpp"
 
 using namespace CPlusPlusLogging;
 
@@ -705,49 +706,20 @@ namespace Fflonk {
         // C1(X) := a(X^4) + X · b(X^4) + X^2 · c(X^4) + X^3 · T0(X^4)
         // Get X^n · f(X) by shifting the f(x) coefficients n positions,
         // the resulting polynomial will be degree deg(f(X)) + n
-        u_int64_t lengthA = polynomials["A"]->getLength();
-        u_int64_t lengthB = polynomials["B"]->getLength();
-        u_int64_t lengthC = polynomials["C"]->getLength();
-        u_int64_t lengthT0 = polynomials["T0"]->getLength();
+        CPolynomial<Engine> *C1 = new CPolynomial(E, 4);
 
-        // Compute degree of the new polynomial C1 to reserve the buffer memory size
-        // Will be the next power of two to bound the maximum(deg(A_4), deg(B_4)+1, deg(C_4)+2, deg(T0_4)+3)
-        u_int64_t degreeA = polynomials["A"]->getDegree();
-        u_int64_t degreeB = polynomials["B"]->getDegree();
-        u_int64_t degreeC = polynomials["C"]->getDegree();
-        u_int64_t degreeT0 = polynomials["T0"]->getDegree();
+        C1->addPolynomial(0, polynomials["A"]);
+        C1->addPolynomial(1, polynomials["B"]);
+        C1->addPolynomial(2, polynomials["C"]);
+        C1->addPolynomial(3, polynomials["T0"]);
 
-        u_int64_t maxLength = std::max(lengthA, std::max(lengthB, std::max(lengthC, lengthT0)));
-        u_int64_t maxDegree = std::max(degreeA * 4 + 1,
-                                       std::max(degreeB * 4 + 2, std::max(degreeC * 4 + 3, degreeT0 * 4 + 3)));
-
-        u_int64_t lengthBuffer = std::pow(2, fft->log2(maxDegree - 1) + 1);
-
-        polynomials["C1"] = new Polynomial<Engine>(E, polPtr["C1"], lengthBuffer);
-
-        std::ostringstream ss;
-#pragma omp parallel for
-        for (u_int64_t i = 0; i < maxLength; i++) {
-//            if ((0 != i) && (i % 100000 == 0)) {
-//                ss.str("");
-//                ss << "      c1 coefficients " << i << "/" << maxLength;
-//                //LOG_TRACE(ss);
-//            }
-
-            if (i <= degreeA) polynomials["C1"]->coef[i * 4] = polynomials["A"]->coef[i];
-            if (i <= degreeB) polynomials["C1"]->coef[i * 4 + 1] = polynomials["B"]->coef[i];
-            if (i <= degreeC) polynomials["C1"]->coef[i * 4 + 2] = polynomials["C"]->coef[i];
-            if (i <= degreeT0) polynomials["C1"]->coef[i * 4 + 3] = polynomials["T0"]->coef[i];
-        }
-
-        polynomials["C1"]->fixDegree();
+        polynomials["C1"] = C1->getPolynomial(polPtr["C1"]);
 
         // Check degree
         if (polynomials["C1"]->getDegree() >= 8 * zkey->domainSize + 8) {
             throw std::runtime_error("C1 Polynomial is not well calculated");
         }
     }
-
 
     // ROUND 2
     template<typename Engine>
