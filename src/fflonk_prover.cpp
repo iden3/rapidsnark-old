@@ -471,7 +471,6 @@ namespace Fflonk {
         // STEP 1.2 - Compute wire polynomials a(X), b(X) and c(X)
         LOG_TRACE("> Computing A, B, C wire polynomials");
         computeWirePolynomials();
-        takeTime(T2, "Compute wire polynomials");
 
         // STEP 1.3 - Compute the quotient polynomial T0(X)
         LOG_TRACE("> Computing T0 polynomial");
@@ -519,6 +518,7 @@ namespace Fflonk {
         ThreadUtils::parcpy(mapBuffers["C"],
                             (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_C_MAP_SECTION),
                             byteLength, nThreads);
+        takeTime(T2, "copy wire data");
 
         FrElement bFactorsA[2] = {blindingFactors[2], blindingFactors[1]};
         FrElement bFactorsB[2] = {blindingFactors[4], blindingFactors[3]};
@@ -549,6 +549,7 @@ namespace Fflonk {
             FrElement witness = getWitness(mapBuffers[polName][i]);
             E.fr.toMontgomery(buffers[polName][i], witness);
         }
+        takeTime(T2, "montgomery wire data");
 
         // Create the polynomial
         // and compute the coefficients of the wire polynomials from evaluations
@@ -557,15 +558,18 @@ namespace Fflonk {
         ss << "··· Computing " << polName << " ifft";
         LOG_TRACE(ss);
         polynomials[polName] = Polynomial<Engine>::fromEvaluations(E, fft, buffers[polName], polPtr[polName], zkey->domainSize, 2);
+        takeTime(T2, "ifft wire polynomials");
 
         // Compute the extended evaluations of the wire polynomials
         ss.str("");
         ss << "··· Computing " << polName << " fft";
         LOG_TRACE(ss);
         evaluations[polName] = new Evaluations<Engine>(E, fft, evalPtr[polName], *polynomials[polName], zkey->domainSize * 4);
+        takeTime(T2, "fft wire polynomials");
 
         // Blind polynomial coefficients with blinding scalars blindingFactors
         polynomials[polName]->blindCoefficients(blindingFactors, bFactorsLen);
+        takeTime(T2, "blind wire polynomials");
     }
 
     template<typename Engine>
@@ -1298,7 +1302,10 @@ namespace Fflonk {
 
         // The fourth output of the prover is ([W1]_1), where W1:=(f/Z_t)(x)
         LOG_TRACE("> Computing W1 multi exponentiation");
-        G1Point W1 = multiExponentiation(polynomials["F"]);
+        u_int64_t lengths[1] = {polynomials["F"]->getDegree() + 1};
+        G1Point W1 = multiExponentiation(polynomials["F"], 1, lengths);
+
+//        G1Point W1 = multiExponentiation(polynomials["F"]);
         takeTime(T2, "F multi exponentiation");
 
         proof->addPolynomialCommitment("W1", W1);
@@ -1378,13 +1385,9 @@ namespace Fflonk {
 
     template<typename Engine>
     void FflonkProver<Engine>::computeF() {
-
-
-        takeTime(T2, "reserve F memory");
-
         LOG_TRACE("··· Reading C0 evaluations");
         evaluations["C0"] = new Evaluations<Engine>(E, evalPtr["C0"], zkey->domainSize * 16);
-        takeTime(T2, "reserve C0 memory");
+        takeTime(T2, "initialize C0 evaluations");
         int nThreads = omp_get_max_threads() / 2;
         ThreadUtils::parcpy(evaluations["C0"]->eval,
                             (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_C0_SECTION) + zkey->domainSize * 8,
@@ -1404,6 +1407,7 @@ namespace Fflonk {
 
         // COMPUTE F(X)
         std::ostringstream ss;
+
 #pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize * 16; i++) {
 //            if ((0 != i) && (i % 100000 == 0)) {
@@ -1417,6 +1421,7 @@ namespace Fflonk {
             FrElement c0 = evaluations["C0"]->eval[i];
             FrElement c1 = evaluations["C1"]->eval[i];
             FrElement c2 = evaluations["C2"]->eval[i];
+
             FrElement r0 = polynomials["R0"]->evaluate(omega);
             FrElement r1 = polynomials["R1"]->evaluate(omega);
             FrElement r2 = polynomials["R2"]->evaluate(omega);
@@ -1531,7 +1536,10 @@ namespace Fflonk {
 
         // The fifth output of the prover is ([W2]_1), where W2:=(f/Z_t)(x)
         LOG_TRACE("> Computing W' multi exponentiation");
-        G1Point W2 = multiExponentiation(polynomials["L"]);
+        u_int64_t lengths[1] = {polynomials["L"]->getDegree() + 1};
+        G1Point W2 = multiExponentiation(polynomials["L"], 1, lengths);
+
+//        G1Point W2 = multiExponentiation(polynomials["L"]);
         takeTime(T2, "L multi exponentiation");
 
         proof->addPolynomialCommitment("W2", W2);
