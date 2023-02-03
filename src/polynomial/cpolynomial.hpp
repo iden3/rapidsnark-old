@@ -1,10 +1,6 @@
 #ifndef CPOLYNOMIAL_HPP
 #define CPOLYNOMIAL_HPP
 
-//#include "assert.h"
-//#include <sstream>
-//#include <gmp.h>
-//#include "fft.hpp"
 #include "polynomial.hpp"
 
 

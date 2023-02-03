@@ -1,8 +1,4 @@
 #include "cpolynomial.hpp"
-//#include "thread_utils.hpp"
-//#include "evaluations.hpp"
-//#include <math.h>
-//#include "logger.hpp"
 
 using namespace CPlusPlusLogging;
 
@@ -34,9 +30,10 @@ u_int64_t CPolynomial<Engine>::getDegree() const {
     u_int64_t degree = 0;
     for (int i = 0; i < n; i++) {
         if (this->polynomials[i] != NULL) {
-            degree = std::max(degree, this->polynomials[i]->getDegree());
+            degree = std::max(degree, this->polynomials[i]->getDegree() * n + i);
         }
     }
+    return degree;
 }
 
 template<typename Engine>
@@ -48,7 +45,7 @@ Polynomial<Engine> *CPolynomial<Engine>::getPolynomial(FrElement *reservedBuffer
     }
 
     u_int64_t maxDegree = this->getDegree();
-    u_int64_t lengthBuffer = std::pow(2, log2(maxDegree - 1) + 1);
+    u_int64_t lengthBuffer = std::pow(2, ((u_int64_t)log2(maxDegree - 1)) + 1);
 
     Polynomial<Engine> *polynomial = new Polynomial<Engine>(E, reservedBuffer, lengthBuffer);
 

@@ -9,6 +9,7 @@
 #include "logger.hpp"
 #include "thread_utils.hpp"
 #include "polynomial/cpolynomial.hpp"
+#include "polynomial/cpolynomial.hpp"
 
 using namespace CPlusPlusLogging;
 
@@ -83,7 +84,9 @@ namespace Fflonk {
 
             // Reserve big buffer memory for buffers to avoid dynamic reservation
             u_int64_t buffersLength = zkey->domainSize * 3; // A, B, C
-            buffersLength += zkey->domainSize * 4 * 6;      // T0, T0z, T1, T1z, T2 & T2z
+            buffersLength += zkey->domainSize * 4 * 2;      // T0 & T0z
+            buffersLength += zkey->domainSize * 2 * 2;      // T1 & T1z
+            buffersLength += zkey->domainSize * 4 * 2;      // T2 & T2z
             buffersLength += zkey->domainSize;              // Z
             buffersLength += zkey->domainSize * 16;         // F
             buffersLength += zkey->domainSize * 16;         // L
@@ -104,9 +107,9 @@ namespace Fflonk {
             buffers["T0z"] = &bigBufferBuffers[accLength];
             accLength += zkey->domainSize * 4;
             buffers["T1"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize * 4;
+            accLength += zkey->domainSize * 2;
             buffers["T1z"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize * 4;
+            accLength += zkey->domainSize * 2;
             buffers["T2"] = &bigBufferBuffers[accLength];
             accLength += zkey->domainSize * 4;
             buffers["T2z"] = &bigBufferBuffers[accLength];
@@ -133,7 +136,9 @@ namespace Fflonk {
             polynomialsLength += zkey->domainSize * 5;      // QL, QR, QM, QO & QC
             polynomialsLength += zkey->domainSize * 8;      // C0
             polynomialsLength += zkey->domainSize * 16 * 2; // C1 & C2
-            polynomialsLength += zkey->domainSize * 4 * 6;  // T0, T0z, T1, T1z, T2 & T2z
+            polynomialsLength += zkey->domainSize * 4 * 2;  // T0 & T0z
+            polynomialsLength += zkey->domainSize * 2 * 2;  // T1 & T1z
+            polynomialsLength += zkey->domainSize * 4 * 2;  // T2 & T2z
             polynomialsLength += zkey->domainSize * 2;      // Z
             polynomialsLength += zkey->domainSize * 16;     // F
             polynomialsLength += zkey->domainSize * 16;     // L
@@ -175,9 +180,9 @@ namespace Fflonk {
             polPtr["T0z"] = &bigBufferPolynomials[accLength];
             accLength += zkey->domainSize * 4;
             polPtr["T1"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 4;
+            accLength += zkey->domainSize * 2;
             polPtr["T1z"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 4;
+            accLength += zkey->domainSize * 2;
             polPtr["T2"] = &bigBufferPolynomials[accLength];
             accLength += zkey->domainSize * 4;
             polPtr["T2z"] = &bigBufferPolynomials[accLength];
@@ -704,8 +709,6 @@ namespace Fflonk {
     template<typename Engine>
     void FflonkProver<Engine>::computeC1() {
         // C1(X) := a(X^4) + X · b(X^4) + X^2 · c(X^4) + X^3 · T0(X^4)
-        // Get X^n · f(X) by shifting the f(x) coefficients n positions,
-        // the resulting polynomial will be degree deg(f(X)) + n
         CPolynomial<Engine> *C1 = new CPolynomial(E, 4);
 
         C1->addPolynomial(0, polynomials["A"]);
@@ -882,44 +885,44 @@ namespace Fflonk {
         LOG_TRACE("··· Computing T1 evaluations");
 
         std::ostringstream ss;
-#pragma omp parallel for
-        for (u_int64_t i = 0; i < zkey->domainSize * 4; i++) {
+
+        #pragma omp parallel for
+        for (u_int64_t i = 0; i < zkey->domainSize * 2; i++) {
 //            if ((0 != i) && (i % 100000 == 0)) {
 //                ss.str("");
 //                ss << "    T1 evaluation " << i << "/" << zkey->domainSize * 4;
 //                //LOG_TRACE(ss);
 //            }
 
-            FrElement omega = fft->root(zkeyPower + 2, i);
+            FrElement omega = fft->root(zkeyPower + 1, i);
             FrElement omega2 = E.fr.square(omega);
 
-            FrElement z = evaluations["Z"]->eval[i];
+            FrElement z = evaluations["Z"]->eval[i * 2];
             FrElement zp = E.fr.add(E.fr.add(
                     E.fr.mul(blindingFactors[7], omega2), E.fr.mul(blindingFactors[8], omega)), blindingFactors[9]);
 
             // T1(X) := (z(X) - 1) · L_1(X)
             // Compute first T1(X)·Z_H(X), so divide later the resulting polynomial by Z_H(X)
-            FrElement lagrange1 = evaluations["lagrange1"]->eval[i];
+            FrElement lagrange1 = evaluations["lagrange1"]->eval[i * 2];
             FrElement t1 = E.fr.mul(E.fr.sub(z, E.fr.one()), lagrange1);
             FrElement t1z = E.fr.mul(zp, lagrange1);
 
             buffers["T1"][i] = t1;
             buffers["T1z"][i] = t1z;
-
         }
 
         // Compute the coefficients of the polynomial T1(X) from buffers.T1
         LOG_TRACE("··· Computing T1 ifft");
-        polynomials["T1"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T1"], polPtr["T1"], zkey->domainSize * 4);
+        polynomials["T1"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T1"], polPtr["T1"], zkey->domainSize * 2);
         takeTime(T2, "ifft T1 ");
 
         // Divide the polynomial T1 by Z_H(X)
-        polynomials["T1"]->divZh(zkey->domainSize);
+        polynomials["T1"]->divZh(zkey->domainSize, 2);
         takeTime(T2, "T1 divZh");
 
         // Compute the coefficients of the polynomial T1z(X) from buffers.T1z
         LOG_TRACE("··· Computing T1z ifft");
-        polynomials["T1z"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T1z"], polPtr["T1z"], zkey->domainSize * 4);
+        polynomials["T1z"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T1z"], polPtr["T1z"], zkey->domainSize * 2);
         takeTime(T2, "ifft T1z ");
 
         // Add the polynomial T0z to T0 to get the final polynomial T0
@@ -1030,42 +1033,14 @@ namespace Fflonk {
 
     template<typename Engine>
     void FflonkProver<Engine>::computeC2() {
-        LOG_TRACE("··· Computing C2");
-
         // C2(X) := z(X^3) + X · T1(X^3) + X^2 · T2(X^3)
-        // Get X^n · f(X) by shifting the f(x) coefficients n positions,
-        // the resulting polynomial will be degree deg(f(X)) + n
-        u_int64_t lengthZ = polynomials["Z"]->getLength();
-        u_int64_t lengthT1 = polynomials["T1"]->getLength();
-        u_int64_t lengthT2 = polynomials["T2"]->getLength();
-        // Compute degree of the new polynomial C2(X) to reserve the buffer memory size
-        // Will be the maximum(deg(Z_3), deg(T1_3)+1, deg(T2_3)+2)
-        u_int64_t degreeZ = polynomials["Z"]->getDegree();
-        u_int64_t degreeT1 = polynomials["T1"]->getDegree();
-        u_int64_t degreeT2 = polynomials["T2"]->getDegree();
+        CPolynomial<Engine> *C2 = new CPolynomial(E, 3);
 
-        u_int64_t maxLength = std::max(lengthZ, std::max(lengthT1, lengthT2));
-        u_int64_t maxDegree = std::max(degreeZ * 3 + 1, std::max(degreeT1 * 3 + 2, degreeT2 * 3 + 3));
+        C2->addPolynomial(0, polynomials["Z"]);
+        C2->addPolynomial(1, polynomials["T1"]);
+        C2->addPolynomial(2, polynomials["T2"]);
 
-        u_int64_t lengthBuffer = std::pow(2, fft->log2(maxDegree - 1) + 1);
-
-        polynomials["C2"] = new Polynomial<Engine>(E, polPtr["C2"], lengthBuffer);
-
-        std::ostringstream ss;
-#pragma omp parallel for
-        for (u_int64_t i = 0; i < maxLength; i++) {
-//            if ((0 != i) && (i % 100000 == 0)) {
-//                ss.str("");
-//                ss << "    C2 coefficient " << i << "/" << maxLength;
-//                //LOG_TRACE(ss);
-//            }
-
-            if (i <= degreeZ) polynomials["C2"]->coef[i * 3] = polynomials["Z"]->coef[i];
-            if (i <= degreeT1) polynomials["C2"]->coef[i * 3 + 1] = polynomials["T1"]->coef[i];
-            if (i <= degreeT2) polynomials["C2"]->coef[i * 3 + 2] = polynomials["T2"]->coef[i];
-        }
-
-        polynomials["C2"]->fixDegree();
+        polynomials["C2"] = C2->getPolynomial(polPtr["C2"]);
 
         // Check degree
         if (polynomials["C2"]->getDegree() >= 9 * zkey->domainSize + 18) {

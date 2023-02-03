@@ -89,7 +89,7 @@ public:
 
     void fastDivByVanishing(FrElement *reservedBuffer, uint32_t m, FrElement beta);
 
-    void divZh(u_int64_t domainSize);
+    void divZh(u_int64_t domainSize, int extension = 4);
 
     void byX();
 

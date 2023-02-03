@@ -557,7 +557,7 @@ void Polynomial<Engine>::fastDivByVanishing(FrElement *reservedBuffer, uint32_t 
 }
 
 template<typename Engine>
-void Polynomial<Engine>::divZh(u_int64_t domainSize) {
+void Polynomial<Engine>::divZh(u_int64_t domainSize, int extension) {
 #pragma omp parallel for
     for (u_int64_t i = 0; i < domainSize; i++) {
         E.fr.neg(this->coef[i], this->coef[i]);
@@ -577,7 +577,7 @@ void Polynomial<Engine>::divZh(u_int64_t domainSize) {
                 u_int64_t idx1 = idxBase + (i + 1) * domainSize;
                 E.fr.sub(coef[idx1], coef[idx0], coef[idx1]);
 
-                if (i > (domainSize * 3 - 4)) {
+                if (i > (domainSize * (extension - 1) - extension)) {
                     if (!E.fr.isZero(coef[idx1])) {
                         throw std::runtime_error("Polynomial is not divisible");
                     }
