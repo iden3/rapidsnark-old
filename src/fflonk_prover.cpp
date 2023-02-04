@@ -202,7 +202,6 @@ namespace Fflonk {
             evaluationsLength += zkey->domainSize * 4;      // lagrange1
             evaluationsLength += zkey->domainSize * 4;      // Z
             evaluationsLength += zkey->domainSize * 16 * 3; // C0, C1 & C2
-            evaluationsLength += zkey->domainSize * 16;     // F
 
             bigBufferEvaluations = new FrElement[evaluationsLength];
 
@@ -238,8 +237,6 @@ namespace Fflonk {
             evalPtr["C1"] = &bigBufferEvaluations[accLength];
             accLength += zkey->domainSize * 16;
             evalPtr["C2"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 16;
-            evalPtr["F"] = &bigBufferEvaluations[accLength];
 
             takeTime(T1, "Reserving all memory");
 
@@ -1500,7 +1497,6 @@ namespace Fflonk {
         FrElement evalR0Y = polynomials["R0"]->fastEvaluate(challenges["y"]);
         FrElement evalR1Y = polynomials["R1"]->fastEvaluate(challenges["y"]);
         FrElement evalR2Y = polynomials["R2"]->fastEvaluate(challenges["y"]);
-        FrElement evalZTY = polynomials["ZT"]->fastEvaluate(challenges["y"]);
 
         FrElement mulL0 = E.fr.sub(challenges["y"], roots["S0h0"][0]);
         for (uint i = 1; i < 8; i++) {
@@ -1526,11 +1522,7 @@ namespace Fflonk {
 
         toInverse["yBatch"] = preL1; //TODO review
 
-        LOG_TRACE("··· Computing F fft");
-
         takeTime(T2, "precompute L");
-
-        evaluations["F"] = new Evaluations<Engine>(E, fft, evalPtr["F"], *polynomials["F"], zkey->domainSize * 16);
         takeTime(T2, "fft F");
 
         LOG_TRACE("··· Computing L evaluations");
@@ -1550,7 +1542,6 @@ namespace Fflonk {
             FrElement c0 = evaluations["C0"]->eval[i];
             FrElement c1 = evaluations["C1"]->eval[i];
             FrElement c2 = evaluations["C2"]->eval[i];
-            FrElement f = evaluations["F"]->eval[i];
 
             // l0 = (y-h1) (y-h1w4) (y-h1w4_2) (y-h1w4_3) (y-h2) (y-h2w3) (y-h2w3_2) (y-h3) (y-h3w3) (y-h3w3_2) (C0(X) - R0(X))
             FrElement l0 = E.fr.mul(preL0, E.fr.sub(c0, evalR0Y));
@@ -1563,11 +1554,7 @@ namespace Fflonk {
             //            (y-h1) (y-h1w4) (y-h1w4_2) (y-h1w4_3) (C2(X) - R2(X))
             FrElement l2 = E.fr.mul(preL2, E.fr.sub(c2, evalR2Y));
 
-            // l3 = ZT(y) (f(X)/ZT(X))
-            // Recall f is already a f(X)/ZT(X)
-            FrElement l3 = E.fr.mul(evalZTY, f);
-
-            FrElement l = E.fr.sub(E.fr.add(E.fr.add(l0, l1), l2), l3);
+            FrElement l = E.fr.add(E.fr.add(l0, l1), l2);
 
             buffers["L"][i] = l;
         }
@@ -1575,9 +1562,12 @@ namespace Fflonk {
         LOG_TRACE("··· Computing L ifft");
         takeTime(T2, "composing L polynomial");
 
-
         polynomials["L"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["L"], polPtr["L"], zkey->domainSize * 16);
         takeTime(T2, "ifft L ");
+
+        FrElement evalZTY = polynomials["ZT"]->fastEvaluate(challenges["y"]);
+        polynomials["F"]->mulScalar(evalZTY);
+        polynomials["L"]->sub(*polynomials["F"]);
 
         // Check degree
         if (polynomials["L"]->getDegree() >= 9 * zkey->domainSize + 18) {

@@ -227,34 +227,16 @@ void Polynomial<Engine>::add(Polynomial<Engine> &polynomial) {
     fixDegree();
 }
 
+//TODO when the polynomial subtracted is bigger than the current one
 template<typename Engine>
 void Polynomial<Engine>::sub(Polynomial<Engine> &polynomial) {
-    FrElement *newCoef;
-    bool resize = polynomial.length > this->length;
+    u_int64_t length = std::max(this->length, polynomial.length);
 
-    if (resize) {
-        newCoef = new FrElement[polynomial.length];
-    }
-
-    u_int64_t thisLength = this->length;
-    u_int64_t polyLength = polynomial.length;
-
-#pragma omp parallel for
-    for (u_int64_t i = 0; i < std::max(thisLength, polyLength); i++) {
-        FrElement a = i < thisLength ? this->coef[i] : this.Fr.zero;
-        FrElement b = i < polyLength ? polynomial->coef[i] : this.Fr.zero;
-        FrElement sub = E.fr.sub(a, b);
-
-        if (resize) {
-            newCoef[i] = sub;
-        } else {
-            this->coef[i] = sub;
-        }
-    }
-
-    if (resize) {
-        delete this->coef;
-        this->coef = newCoef;
+    #pragma omp parallel for
+    for (u_int64_t i = 0; i < length; i++) {
+        FrElement a = i < this->length ? this->coef[i] : E.fr.zero();
+        FrElement b = i < polynomial.length ? polynomial.coef[i] : E.fr.zero();
+        this->coef[i] = E.fr.sub(a, b);
     }
 
     fixDegree();
@@ -262,9 +244,9 @@ void Polynomial<Engine>::sub(Polynomial<Engine> &polynomial) {
 
 template<typename Engine>
 void Polynomial<Engine>::mulScalar(FrElement &value) {
-#pragma omp parallel for
+    #pragma omp parallel for
     for (u_int64_t i = 0; i < this->length; i++) {
-        E.fr.mul(this->coef[i], this->coef[i], value);
+        this->coef[i] = E.fr.mul(this->coef[i], value);
     }
 }
 
