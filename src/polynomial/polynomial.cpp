@@ -611,7 +611,7 @@ Polynomial<Engine>::computeLagrangePolynomial(u_int64_t i, FrElement xArr[], FrE
         if (j == i) continue;
 
         if (NULL == polynomial) {
-            polynomial = new Polynomial<Engine>(E, length + 1);
+            polynomial = new Polynomial<Engine>(E, length);
             polynomial->coef[0] = E.fr.neg(xArr[j]);
             polynomial->coef[1] = E.fr.one();
             polynomial->fixDegree();

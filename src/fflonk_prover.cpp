@@ -478,7 +478,6 @@ namespace Fflonk {
         // STEP 1.3 - Compute the quotient polynomial T0(X)
         LOG_TRACE("> Computing T0 polynomial");
         computeT0();
-        takeTime(T2, "Compute T0 polynomial");
 
         // STEP 1.4 - Compute the FFT-style combination polynomial C1(X)
         LOG_TRACE("> Computing C1 polynomial");
@@ -615,9 +614,9 @@ namespace Fflonk {
                             (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_LAGRANGE_SECTION) + zkey->domainSize,
                             sDomain * 4, nThreads);
 
-        // Reserve memory for buffers T0 and T0z
+        takeTime(T2, "read Selectors and sigmas");
 
-#pragma omp parallel for
+        #pragma omp parallel for
         for (u_int32_t i = 0; i < zkey->domainSize * 4; i++) {
 //            if ((0 != i) && (i % 100000 == 0)) {
 //                ss.str("");
@@ -679,6 +678,8 @@ namespace Fflonk {
             buffers["T0"][i] = t0;
             buffers["T0z"][i] = t0z;
         }
+
+        takeTime(T2, "compose T0 and T0z");
 
         // Compute the coefficients of the polynomial T0(X) from buffers.T0
         LOG_TRACE("··· Computing T0 ifft");
@@ -907,6 +908,7 @@ namespace Fflonk {
             buffers["T1"][i] = t1;
             buffers["T1z"][i] = t1z;
         }
+        takeTime(T2, "compose T1 and T1z");
 
         // Compute the coefficients of the polynomial T1(X) from buffers.T1
         LOG_TRACE("··· Computing T1 ifft");
@@ -936,7 +938,7 @@ namespace Fflonk {
         LOG_TRACE("··· Computing T2 evaluations");
 
         std::ostringstream ss;
-#pragma omp parallel for
+        #pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize * 4; i++) {
 //            if ((0 != i) && (i % 100000 == 0)) {
 //                ss.str("");
@@ -1004,6 +1006,7 @@ namespace Fflonk {
             buffers["T2"][i] = t2;
             buffers["T2z"][i] = t2z;
         }
+        takeTime(T2, "compose T2 and T2z");
 
         // Compute the coefficients of the polynomial T2(X) from buffers.T2
         LOG_TRACE("··· Computing T2 ifft");
@@ -1351,8 +1354,7 @@ namespace Fflonk {
 
         // COMPUTE F(X)
         std::ostringstream ss;
-
-#pragma omp parallel for
+        #pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize * 16; i++) {
 //            if ((0 != i) && (i % 100000 == 0)) {
 //                ss.str("");
@@ -1492,8 +1494,6 @@ namespace Fflonk {
 
     template<typename Engine>
     void FflonkProver<Engine>::computeL() {
-
-
         FrElement evalR0Y = polynomials["R0"]->fastEvaluate(challenges["y"]);
         FrElement evalR1Y = polynomials["R1"]->fastEvaluate(challenges["y"]);
         FrElement evalR2Y = polynomials["R2"]->fastEvaluate(challenges["y"]);
