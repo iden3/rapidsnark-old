@@ -52,13 +52,10 @@ template<typename Engine>
 Evaluations<Engine>::Evaluations(Engine &_E, FFT<typename Engine::Fr> *fft, FrElement *reservedBuffer, Polynomial<Engine> &polynomial, u_int32_t extensionLength) : E(_E) {
     this->eval = reservedBuffer;
     this->initialize(extensionLength, false);
-    //Extend polynomial
-    //initialize(extensionLength, false);
 
     int nThreads = omp_get_max_threads() / 2;
     ThreadUtils::parcpy(eval, polynomial.coef, (polynomial.getDegree() + 1) * sizeof(FrElement), nThreads);
 
-    //Coefficients to evaluations
     fft->fft(eval, extensionLength);
 }
 

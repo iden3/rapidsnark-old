@@ -29,18 +29,24 @@ namespace Benchmark {
 
         G1PointAffine *PTau;
 
+        typename Engine::FrElement* polynomialFromMontgomery(Polynomial<Engine> *polynomial);
+
+        typename Engine::G1Point multiExponentiation(Polynomial<Engine> *polynomial);
+
     public:
         Benchmark(Engine &E);
 
         ~Benchmark();
 
-        void run(int initialPower, int finalPower);
+        void run(std::string ptauFile, int initialPower, int finalPower, int iterations);
 
         void createBuffer(FrElement *buffer, u_int32_t domainSize);
 
         double benchmarkIfft(u_int32_t domainSize, int iterations);
 
-        double benchmarkFft(u_int32_t domainSize, int extension, int iterations);
+        double benchmarkFft(u_int32_t domainSize, int iterations);
+
+        double benchmarkMultiexp(u_int32_t domainSize, int iterations);
     };
 }
 
