@@ -27,6 +27,18 @@ using json = nlohmann::json;
            do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
 int main(int argc, char **argv) {
+    std::string cmd = argv[0];
+
+    if (strcmp(cmd.data(), "benchmark") == 0) {
+        std::string initialPower = argv[1];
+        std::string finalPower = argv[2];
+
+        auto benchmark = new Benchmark::Benchmark<AltBn128::Engine>(AltBn128::Engine::engine);
+
+        benchmark->run(initialPower, finalPower);
+
+        return 0;
+    }
 
     if (argc != 5) {
         std::cerr << "Invalid number of parameters:\n";
@@ -43,7 +55,6 @@ int main(int argc, char **argv) {
     mpz_set_str(altBbn128r, "21888242871839275222246405745257275088548364400416034343698204186575808495617", 10);
 
     try {
-        std::string cmd = argv[0];
         std::string zkeyFilename = argv[1];
         std::string wtnsFilename = argv[2];
         std::string proofFilename = argv[3];
@@ -56,14 +67,6 @@ int main(int argc, char **argv) {
 
         LOG_TRACE("> Opening wtns file");
         auto wtns = BinFileUtils::openExisting(wtnsFilename, "wtns", 2);
-
-        if(strcmp(cmd.data(), "benchmark") == 0) {
-            auto benchmark = new Benchmark::Benchmark<AltBn128::Engine>(AltBn128::Engine::engine);
-
-            benchmark->run(10,11);
-
-            return 0;
-        }
 
         if (Zkey::FFLONK_PROTOCOL_ID == protocolId) {
 
