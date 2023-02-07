@@ -27,18 +27,21 @@ using json = nlohmann::json;
            do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
 int main(int argc, char **argv) {
-    std::string cmd = argv[0];
+    std::string cmd = argv[1];
 
-    if (strcmp(cmd.data(), "benchmark") == 0) {
-//        std::string initialPower = argv[1];
-//        std::string finalPower = argv[2];
+    if (argv[1] == std::string("benchmark")) {
+        std::string initialPower = argv[2];
+        std::string finalPower = argv[3];
+        std::string iterations = argv[4];
 
         auto benchmark = new Benchmark::Benchmark<AltBn128::Engine>(AltBn128::Engine::engine);
-
         benchmark->benchmarkMultiply(1000000000);
 
-//        benchmark->run(initialPower, finalPower);
-
+//        int power0 = std::atoi(initialPower.c_str());
+//	    int power1 = std::atoi(finalPower.c_str());
+//	    int it = std::atoi(iterations.c_str());
+//
+//        benchmark->run("", power0, power1, it);
         return 0;
     }
 
