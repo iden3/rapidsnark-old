@@ -23,6 +23,19 @@ namespace Benchmark {
     }
 
     template<typename Engine>
+    void Benchmark<Engine>::benchmarkMultiply(uint64_t n) {
+        FrElement op1 = E.fr.set(123);
+        FrElement op2 = E.fr.set(247);
+
+        double time = omp_get_wtime();
+        for (uint64_t i = 0; i < n; i++) {
+            op1 = E.fr.mul(op1, op2);
+        }
+        time = omp_get_wtime() - time;
+        cout << time << "\n";
+    }
+
+    template<typename Engine>
     void Benchmark<Engine>::run(int initialPower, int finalPower) {
         std::cout << "BENCHMARK STARTED";
 

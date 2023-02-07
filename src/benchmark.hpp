@@ -34,6 +34,8 @@ namespace Benchmark {
 
         ~Benchmark();
 
+        void benchmarkMultiply(uint64_t n);
+
         void run(int initialPower, int finalPower);
 
         void createBuffer(FrElement *buffer, u_int32_t domainSize);
