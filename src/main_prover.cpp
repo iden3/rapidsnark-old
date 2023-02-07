@@ -30,9 +30,9 @@ int main(int argc, char **argv) {
     std::string cmd = argv[1];
 
     if (argv[1] == std::string("benchmark")) {
-        std::string initialPower = argv[2];
-        std::string finalPower = argv[3];
-        std::string iterations = argv[4];
+//        std::string initialPower = argv[2];
+//        std::string finalPower = argv[3];
+//        std::string iterations = argv[4];
 
         auto benchmark = new Benchmark::Benchmark<AltBn128::Engine>(AltBn128::Engine::engine);
         benchmark->benchmarkMultiply(1000000000);
