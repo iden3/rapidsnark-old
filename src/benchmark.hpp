@@ -26,12 +26,17 @@ namespace Benchmark {
         Engine &E;
         FFT<typename Engine::Fr> *fft = NULL;
 
-
-        G1PointAffine *PTau;
-
         typename Engine::FrElement* polynomialFromMontgomery(Polynomial<Engine> *polynomial);
 
-        typename Engine::G1Point multiExponentiation(Polynomial<Engine> *polynomial);
+        typename Engine::G1Point multiExponentiation(G1PointAffine* ptau, Polynomial<Engine> *polynomial);
+
+        void createBuffer(FrElement *buffer, u_int32_t domainSize);
+
+        double runIfft(u_int32_t domainSize, int iterations);
+
+        double runFft(u_int32_t domainSize, int iterations);
+
+        double runMultiexp(G1PointAffine* ptau, u_int32_t domainSize, int iterations);
 
     public:
         Benchmark(Engine &E);
@@ -40,15 +45,9 @@ namespace Benchmark {
 
         void benchmarkMultiply(uint64_t n);
 
-        void run(std::string ptauFile, int initialPower, int finalPower, int iterations);
+        void benchmarkFft(int initialPower, int finalPower, int iterations);
 
-        void createBuffer(FrElement *buffer, u_int32_t domainSize);
-
-        double benchmarkIfft(u_int32_t domainSize, int iterations);
-
-        double benchmarkFft(u_int32_t domainSize, int iterations);
-
-        double benchmarkMultiexp(u_int32_t domainSize, int iterations);
+        void benchmarkMultiexp(std::string ptauFile, int initialPower, int finalPower, int iterations);
     };
 }
 

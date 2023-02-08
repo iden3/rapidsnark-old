@@ -29,19 +29,35 @@ using json = nlohmann::json;
 int main(int argc, char **argv) {
     std::string cmd = argv[1];
 
-    if (argv[1] == std::string("benchmark")) {
-//        std::string initialPower = argv[2];
-//        std::string finalPower = argv[3];
-//        std::string iterations = argv[4];
-
+    if (cmd == std::string("benchmark")) {
         auto benchmark = new Benchmark::Benchmark<AltBn128::Engine>(AltBn128::Engine::engine);
-        benchmark->benchmarkMultiply(1000000000);
+        auto subcmd = argv[2];
+        if (subcmd == std::string("multiply")) {
+            benchmark->benchmarkMultiply(1000000000);
+        } else if(subcmd == std::string("fft")) {
+            std::string initialPower = argv[3];
+            std::string finalPower = argv[4];
+            std::string iterations = argv[5];
 
-//        int power0 = std::atoi(initialPower.c_str());
-//	    int power1 = std::atoi(finalPower.c_str());
-//	    int it = std::atoi(iterations.c_str());
-//
-//        benchmark->run("", power0, power1, it);
+
+            int power0 = std::atoi(initialPower.c_str());
+            int power1 = std::atoi(finalPower.c_str());
+            int it = std::atoi(iterations.c_str());
+
+            benchmark->benchmarkFft(power0, power1, it);
+        } else if(subcmd == std::string("multiexp")) {
+            std::string ptauFile = argv[3];
+            std::string initialPower = argv[4];
+            std::string finalPower = argv[5];
+            std::string iterations = argv[6];
+
+
+            int power0 = std::atoi(initialPower.c_str());
+            int power1 = std::atoi(finalPower.c_str());
+            int it = std::atoi(iterations.c_str());
+
+            benchmark->benchmarkMultiexp(ptauFile, power0, power1, it);
+        }
         return 0;
     }
 

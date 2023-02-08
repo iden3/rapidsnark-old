@@ -9,7 +9,6 @@
 #include "logger.hpp"
 #include "thread_utils.hpp"
 #include "polynomial/cpolynomial.hpp"
-#include "polynomial/cpolynomial.hpp"
 
 using namespace CPlusPlusLogging;
 

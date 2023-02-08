@@ -24,6 +24,7 @@ namespace Benchmark {
 
     template<typename Engine>
     void Benchmark<Engine>::benchmarkMultiply(uint64_t n) {
+        std::cout << "BENCHMARK MULTIPLY STARTED\n";
         FrElement op1 = E.fr.set(123);
         FrElement op2 = E.fr.set(247);
 
@@ -33,11 +34,12 @@ namespace Benchmark {
         }
         time = omp_get_wtime() - time;
         cout << time << "\n";
+        std::cout << "BENCHMARK MULTIPLY FINISHED\n";
     }
 
     template<typename Engine>
-    void Benchmark<Engine>::run(std::string ptauFile, int initialPower, int finalPower, int iterations) {
-        std::cout << "BENCHMARK STARTED\n";
+    void Benchmark<Engine>::benchmarkFft(int initialPower, int finalPower, int iterations) {
+        std::cout << "BENCHMARK FFT STARTED\n";
 
         dump = new Dump::Dump<Engine>(E);
         u_int64_t finalDomainSize = std::pow(2, finalPower);
@@ -47,28 +49,16 @@ namespace Benchmark {
         double resultsFft[finalPower - initialPower];
         double resultsMultiexp[finalPower - initialPower];
 
-//        auto zkey = BinFileUtils::openExisting(zkeyFilename, "zkey", 1);
-//
-//        PTau = new G1PointAffine[finalDomainSize];
-//        memset(PTau, 0, sizeof(PTau));
-//
-//        ThreadUtils::parcpy(this->PTau,
-//                            (G1PointAffine *) fdZkey->getSectionData(Zkey::ZKEY_FF_PTAU_SECTION),
-//                            (finalDomainSize) * sizeof(G1PointAffine), nThreads);
-
         //Benchmark IFFT's
         for (int power = initialPower; power <= finalPower; power++) {
             cout << "power: " << power << "\n";
             u_int64_t domainSize = std::pow(2, power);
             cout << "ifft " << power << "\n";
 
-            resultsIfft[power - initialPower] = benchmarkIfft(domainSize, iterations);
+            resultsIfft[power - initialPower] = runIfft(domainSize, iterations);
 
             cout << "fft " << power << "\n";
-            resultsFft[power - initialPower] = benchmarkFft(domainSize, iterations);
-
-//            cout << "mexp " << power << "\n";
-//            resultsMultiexp[power - initialPower] = benchmarkMultiexp(domainSize, iterations);
+            resultsFft[power - initialPower] = runFft(domainSize, iterations);
         }
         std::ostringstream ss;
 
@@ -86,15 +76,47 @@ namespace Benchmark {
         }
         std::cout << ss.str();
 
-//        ss.str("");
-//        ss << "\nBENCHMARK MULTIEXP\n";
-//        for(int power = initialPower; power <= finalPower; power++) {
-//            ss << "2^" << power << "\t" << resultsMultiexp[power - initialPower] << "\n";
-//        }
-//
-//        std::cout << ss.str();
+        std::cout << "\nBENCHMARK FFT FINISHED\n";
+    }
 
-        std::cout << "\nBENCHMARK FINISHED\n";
+    template<typename Engine>
+    void Benchmark<Engine>::benchmarkMultiexp(std::string ptauFile, int initialPower, int finalPower, int iterations) {
+        std::cout << "BENCHMARK MULTIEXP STARTED\n";
+
+        dump = new Dump::Dump<Engine>(E);
+        u_int64_t finalDomainSize = std::pow(2, finalPower);
+        fft = new FFT<typename Engine::Fr>(finalDomainSize);
+
+        double resultMexp[finalPower - initialPower];
+
+        auto fdZkey = BinFileUtils::openExisting(ptauFile, "ptau", 1);
+
+        G1PointAffine* PTau = new G1PointAffine[finalDomainSize];
+        memset(PTau, 0, sizeof(PTau));
+
+        int nThreads = omp_get_max_threads() / 2;
+        ThreadUtils::parcpy(PTau,
+                            (G1PointAffine *) fdZkey->getSectionData(Zkey::ZKEY_FF_PTAU_SECTION),
+                            (finalDomainSize) * sizeof(G1PointAffine), nThreads);
+
+        //Benchmark Multiexponentiations
+        for (int power = initialPower; power <= finalPower; power++) {
+            cout << "power: " << power << "\n";
+            u_int64_t domainSize = std::pow(2, power);
+            cout << "ifft " << power << "\n";
+
+            resultMexp[power - initialPower] = runMultiexp(&PTau[0], domainSize, iterations);
+        }
+        std::ostringstream ss;
+
+        ss << "\nBENCHMARK MULTIEXP\n";
+        for(int power = initialPower; power <= finalPower; power++) {
+            ss << "2^" << power << "\t" << resultMexp[power - initialPower] << "\n";
+        }
+
+        std::cout << ss.str();
+
+        std::cout << "\nBENCHMARK MULTIEXP FINISHED\n";
     }
 
     template<typename Engine>
@@ -107,7 +129,7 @@ namespace Benchmark {
     }
 
     template<typename Engine>
-    double Benchmark<Engine>::benchmarkIfft(u_int32_t domainSize, int iterations) {
+    double Benchmark<Engine>::runIfft(u_int32_t domainSize, int iterations) {
         FrElement *buffer = new FrElement[domainSize];
         FrElement *bufferCoef = new FrElement[domainSize];
 
@@ -130,7 +152,7 @@ namespace Benchmark {
     }
 
     template<typename Engine>
-    double Benchmark<Engine>::benchmarkFft(u_int32_t domainSize, int iterations) {
+    double Benchmark<Engine>::runFft(u_int32_t domainSize, int iterations) {
         FrElement *buffer = new FrElement[domainSize];
         FrElement *bufferCoef = new FrElement[domainSize];
         FrElement *bufferEval = new FrElement[domainSize];
@@ -157,7 +179,7 @@ namespace Benchmark {
     }
 
     template<typename Engine>
-    double Benchmark<Engine>::benchmarkMultiexp(u_int32_t domainSize, int iterations) {
+    double Benchmark<Engine>::runMultiexp(G1PointAffine* ptau, u_int32_t domainSize, int iterations) {
         FrElement *buffer = new FrElement[domainSize];
         FrElement *bufferCoef = new FrElement[domainSize];
 
@@ -169,7 +191,7 @@ namespace Benchmark {
             Polynomial<Engine> *polynomial = Polynomial<Engine>::fromEvaluations(E, fft, buffer, bufferCoef,
                                                                                  domainSize);
             time = omp_get_wtime();
-            typename Engine::G1Point commit = multiExponentiation(polynomial);
+            typename Engine::G1Point commit = multiExponentiation(ptau, polynomial);
             dump->dump("...", commit);
             time = omp_get_wtime() - time;
             bestTime = std::min(bestTime, time);
@@ -194,13 +216,13 @@ namespace Benchmark {
     }
 
     template<typename Engine>
-    typename Engine::G1Point Benchmark<Engine>::multiExponentiation(Polynomial<Engine> *polynomial) {
+    typename Engine::G1Point Benchmark<Engine>::multiExponentiation(G1PointAffine* ptau, Polynomial<Engine> *polynomial) {
         G1Point value;
         cout << "1\n";
         this->polynomialFromMontgomery(polynomial);
         cout << "2\n";
 
-        E.g1.multiMulByScalar(value, PTau, (uint8_t *) polynomial, sizeof(polynomial[0]), polynomial->getDegree() + 1);
+        E.g1.multiMulByScalar(value, ptau, (uint8_t *) polynomial, sizeof(polynomial[0]), polynomial->getDegree() + 1);
 
         cout << "3\n";
         return value;
