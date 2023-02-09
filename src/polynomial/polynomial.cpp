@@ -34,14 +34,26 @@ Polynomial<Engine>::Polynomial(Engine &_E, FrElement *reservedBuffer, u_int64_t 
 
 template<typename Engine>
 Polynomial<Engine> *
-Polynomial<Engine>::fromCoefficients(Engine &_E, FrElement *coefficients, u_int64_t length, u_int64_t blindLength) {
-    Polynomial<Engine> *pol = new Polynomial<Engine>(_E, length, blindLength);
+Polynomial<Engine>::fromPolynomial(Engine &_E, Polynomial<Engine> &polynomial, u_int64_t blindLength) {
+    Polynomial<Engine> *newPol = new Polynomial<Engine>(_E, polynomial.length, blindLength);
 
     int nThreads = omp_get_max_threads() / 2;
-    ThreadUtils::parcpy(pol->coef, coefficients, length * sizeof(FrElement), nThreads);
-    pol->fixDegree();
+    ThreadUtils::parcpy(newPol->coef, &polynomial.coef[0], polynomial.length * sizeof(FrElement), nThreads);
+    newPol->fixDegree();
 
-    return pol;
+    return newPol;
+}
+
+template<typename Engine>
+Polynomial<Engine> *
+Polynomial<Engine>::fromPolynomial(Engine &_E, Polynomial<Engine> &polynomial, FrElement *reservedBuffer, u_int64_t blindLength) {
+    Polynomial<Engine> *newPol = new Polynomial<Engine>(_E, reservedBuffer, polynomial.length, blindLength);
+
+    int nThreads = omp_get_max_threads() / 2;
+    ThreadUtils::parcpy(newPol->coef, &polynomial.coef[0], polynomial.length * sizeof(FrElement), nThreads);
+    newPol->fixDegree();
+
+    return newPol;
 }
 
 template<typename Engine>
@@ -252,13 +264,13 @@ void Polynomial<Engine>::mulScalar(FrElement &value) {
 
 template<typename Engine>
 void Polynomial<Engine>::addScalar(FrElement &value) {
-    FrElement currentValue = (0 == this->length) ? E.fr.zero : this->coef[0];
+    FrElement currentValue = (0 == this->length) ? E.fr.zero() : this->coef[0];
     E.fr.add(this->coef[0], currentValue, value);
 }
 
 template<typename Engine>
 void Polynomial<Engine>::subScalar(FrElement &value) {
-    FrElement currentValue = (0 == this->length) ? E.fr.zero : this->coef[0];
+    FrElement currentValue = (0 == this->length) ? E.fr.zero() : this->coef[0];
     E.fr.sub(this->coef[0], currentValue, value);
 }
 
@@ -279,6 +291,32 @@ void Polynomial<Engine>::byXSubValue(FrElement &value) {
     // Step 1: multiply each coefficient by (-value)
     FrElement negValue = E.fr.neg(value);
     this->mulScalar(negValue);
+
+    // Step 2: Add current polynomial to destination polynomial
+    pol->add(*this);
+
+    // Swap buffers
+    delete[] this->coef;
+    this->coef = pol->coef;
+
+    fixDegree();
+}
+
+// Multiply current polynomial by the polynomial (X - value)
+template<typename Engine>
+void Polynomial<Engine>::byXNSubValue(int n, FrElement &value) {
+    const bool resize = !((this->length - n - 1) >= this->degree);
+
+    u_int64_t length = resize ? this->length + n : this->length;
+    Polynomial<Engine> *pol = new Polynomial<Engine>(E, length);
+
+    // Step 0: Set current coefficients to the new buffer shifted one position
+    int nThreads = omp_get_max_threads() / 2;
+    ThreadUtils::parcpy(&pol->coef[n], this->coef, (this->degree + 1) * sizeof(FrElement), nThreads);
+    pol->fixDegree();
+
+    // Step 1: multiply each coefficient by value
+    this->mulScalar(value);
 
     // Step 2: Add current polynomial to destination polynomial
     pol->add(*this);
