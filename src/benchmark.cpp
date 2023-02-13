@@ -88,8 +88,7 @@ namespace Benchmark {
         fft = new FFT<typename Engine::Fr>(finalDomainSize);
 
         double resultMexp[finalPower - initialPower];
-
-        auto fdZkey = BinFileUtils::openExisting(ptauFile, "ptau", 1);
+        auto fdZkey = BinFileUtils::openExisting(ptauFile, "zkey", 2);
 
         G1PointAffine* PTau = new G1PointAffine[finalDomainSize];
         memset(PTau, 0, sizeof(PTau));
@@ -207,7 +206,7 @@ namespace Benchmark {
     typename Engine::FrElement *Benchmark<Engine>::polynomialFromMontgomery(Polynomial<Engine> *polynomial) {
         const u_int64_t length = polynomial->getLength();
 
-        #pragma omp parallel for
+#pragma omp parallel for
         for (u_int32_t index = 0; index < length; ++index) {
             E.fr.fromMontgomery(polynomial->coef[index], polynomial->coef[index]);
         }
@@ -218,13 +217,11 @@ namespace Benchmark {
     template<typename Engine>
     typename Engine::G1Point Benchmark<Engine>::multiExponentiation(G1PointAffine* ptau, Polynomial<Engine> *polynomial) {
         G1Point value;
-        cout << "1\n";
-        this->polynomialFromMontgomery(polynomial);
-        cout << "2\n";
 
-        E.g1.multiMulByScalar(value, ptau, (uint8_t *) polynomial, sizeof(polynomial[0]), polynomial->getDegree() + 1);
+        FrElement *pol = this->polynomialFromMontgomery(polynomial);
 
-        cout << "3\n";
+        E.g1.multiMulByScalar(value, ptau, (uint8_t *) pol, sizeof(pol[0]), polynomial->getDegree() + 1);
+
         return value;
     }
 

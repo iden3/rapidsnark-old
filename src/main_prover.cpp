@@ -51,7 +51,6 @@ int main(int argc, char **argv) {
             std::string finalPower = argv[5];
             std::string iterations = argv[6];
 
-
             int power0 = std::atoi(initialPower.c_str());
             int power1 = std::atoi(finalPower.c_str());
             int it = std::atoi(iterations.c_str());
