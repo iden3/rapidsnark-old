@@ -31,7 +31,7 @@ public:
     // From coefficients
     static Polynomial<Engine>* fromPolynomial(Engine &_E, Polynomial<Engine> &polynomial, u_int64_t blindLength = 0);
 
-    static Polynomial<Engine>* fromPolynomial(Engine &_E, Polynomial<Engine> &polynomial, FrElement *reservedBuffer, u_int64_t blindLength);
+    static Polynomial<Engine>* fromPolynomial(Engine &_E, Polynomial<Engine> &polynomial, FrElement *reservedBuffer, u_int64_t blindLength = 0);
 
     // From evaluations
     static Polynomial<Engine>* fromEvaluations(Engine &_E, FFT<typename Engine::Fr> *fft, FrElement *evaluations, u_int64_t length, u_int64_t blindLength = 0);

@@ -301,7 +301,7 @@ namespace Fflonk {
             ss << "> Reading Section " << Zkey::ZKEY_FF_PTAU_SECTION << ". Powers of Tau";
             LOG_TRACE(ss);
             PTau = new G1PointAffine[zkey->domainSize * 16];
-            memset(PTau, 0, sizeof(PTau));
+            memset(PTau, 0, sizeof(G1PointAffine) * zkey->domainSize * 16);
 
             // domainSize * 9 + 18 = SRS length in the zkey saved in setup process.
             // it corresponds to the maximum SRS length needed, specifically to commit C2
@@ -1213,27 +1213,6 @@ namespace Fflonk {
         computeF();
         takeTime(T2, "Computing F polynomial");
 
-        LOG_TRACE("> Computing ZT polynomial");
-        computeZT();
-        takeTime(T2, "Computing ZT polynomial");
-
-        LOG_TRACE("> Computing W = F / ZT polynomial");
-
-        LOG_TRACE("··· Computing W = F / ZT_S0 polynomial");
-        polynomials["F"]->fastDivByVanishing(polPtr["remainder"], 8, challenges["xi"]);
-        LOG_TRACE("··· Computing W = F / ZT_S1 polynomial");
-        polynomials["F"]->fastDivByVanishing(polPtr["remainder"], 4, challenges["xi"]);
-        LOG_TRACE("··· Computing W = F / ZT_S2 polynomial");
-        polynomials["F"]->fastDivByVanishing(polPtr["remainder"], 3, challenges["xi"]);
-        LOG_TRACE("··· Computing W = F / ZT_S3 polynomial");
-        polynomials["F"]->fastDivByVanishing(polPtr["remainder"], 3, challenges["xiw"]);
-
-        takeTime(T2, "Computing F divBy T");
-
-        if (polynomials["F"]->getDegree() >= 9 * zkey->domainSize + 12) {
-            throw std::runtime_error("Degree of f(X)/ZT(X) is not correct");
-        }
-
         // The fourth output of the prover is ([W1]_1), where W1:=(f/Z_t)(x)
         LOG_TRACE("> Computing W1 multi exponentiation");
         u_int64_t lengths[1] = {polynomials["F"]->getDegree() + 1};
@@ -1323,39 +1302,32 @@ namespace Fflonk {
 
         resetTimer(T2);
 
-        FrElement xiNeg, xiwNeg;
-        E.fr.neg(xiNeg, challenges["xi"]);
-        E.fr.neg(xiwNeg, challenges["xiw"]);
         FrElement alpha2 = E.fr.mul(challenges["alpha"], challenges["alpha"]);
 
         // COMPUTE F(X)
-        polynomials["F"] = Polynomial<Engine>::fromPolynomial(E, *polynomials["C2"], polPtr["F"], 12);
+        polynomials["F"] = Polynomial<Engine>::fromPolynomial(E, *polynomials["C2"], polPtr["F"]);
         polynomials["F"]->sub(*polynomials["R2"]);
         polynomials["F"]->mulScalar(alpha2);
-        polynomials["F"]->byXNSubValue(8, xiNeg);
-        polynomials["F"]->byXNSubValue(4, xiNeg);
+        polynomials["F"]->divByMonic(3, challenges["xi"]);
+        polynomials["F"]->divByMonic(3, challenges["xiw"]);
 
-        auto fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C1"], polPtr["A"], 14);
+        auto fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C1"], polPtr["remainder"]);
         fTmp->sub(*polynomials["R1"]);
         fTmp->mulScalar(challenges["alpha"]);
-        fTmp->byXNSubValue(8, xiNeg);
-        fTmp->byXNSubValue(3, xiNeg);
-        fTmp->byXNSubValue(3, xiwNeg);
+        fTmp->divByMonic(4, challenges["xi"]);
 
         polynomials["F"]->add(*fTmp);
 
-        fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C0"], polPtr["A"], 10);
+        fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C0"], polPtr["remainder"]);
         fTmp->sub(*polynomials["R0"]);
-        fTmp->byXNSubValue(4, xiNeg);
-        fTmp->byXNSubValue(3, xiNeg);
-        fTmp->byXNSubValue(3, xiwNeg);
+        fTmp->divByMonic(8, challenges["xi"]);
 
         polynomials["F"]->add(*fTmp);
 
         takeTime(T2, "Composing F polynomial");
 
         // Check degree
-        if (polynomials["F"]->getDegree() >= 9 * zkey->domainSize + 30) {
+        if (polynomials["F"]->getDegree() >= 9 * zkey->domainSize + 12) {
             throw std::runtime_error("F Polynomial is not well calculated");
         }
     }
@@ -1402,14 +1374,8 @@ namespace Fflonk {
         takeTime(T2, "Computing L(X)*ZTS2(y)");
 
         LOG_TRACE("> Computing W' = L / ZTS2 polynomial");
-        polynomials["L"]->fastDivByVanishing(polPtr["remainder"], 1, challenges["y"]);
+        polynomials["L"]->divByMonic(1, challenges["y"]);
         takeTime(T2, "Computing L divBy ZTS2");
-
-//        if (polRemainder->getDegree() > 0) {
-//            ss.str("");
-//            ss << "Degree of f(X)/ZT_S3(X) remainder is " << polRemainder->getDegree() << " and should be 0";
-//            throw std::runtime_error(ss.str());
-//        }
 
         if (polynomials["L"]->getDegree() >= 9 * zkey->domainSize + 17) {
             throw std::runtime_error("Degree of L(X)/(ZTS2(y)(X-y)) is not correct");
@@ -1462,22 +1428,26 @@ namespace Fflonk {
 
         takeTime(T2, "precompute L");
 
-        // COMPUTE F(X)
-        polynomials["L"] = Polynomial<Engine>::fromPolynomial(E, *polynomials["C2"], polPtr["L"], 0);
+        // COMPUTE L(X)
+        polynomials["L"] = Polynomial<Engine>::fromPolynomial(E, *polynomials["C2"], polPtr["L"]);
         polynomials["L"]->subScalar(evalR2Y);
         polynomials["L"]->mulScalar(preL2);
 
-        auto fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C1"], polPtr["A"], 14);
+        auto fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C1"], polPtr["remainder"]);
         fTmp->subScalar(evalR1Y);
         fTmp->mulScalar(preL1);
 
         polynomials["L"]->add(*fTmp);
 
-        fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C0"], polPtr["A"], 14);
+        fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C0"], polPtr["remainder"]);
         fTmp->subScalar(evalR0Y);
         fTmp->mulScalar(preL0);
 
         polynomials["F"]->add(*fTmp);
+
+        LOG_TRACE("> Computing ZT polynomial");
+        computeZT();
+        takeTime(T2, "Computing ZT polynomial");
 
         takeTime(T2, "Composing L polynomial");
 
@@ -1506,19 +1476,19 @@ namespace Fflonk {
         FrElement *products = new FrElement[length];
 
         products[0] = elements[0];
-        for (int64_t index = 1; index < length; index++) {
+        for (u_int64_t index = 1; index < length; index++) {
             E.fr.mul(products[index], products[index - 1], elements[index]);
         }
 
         // Calculate inverses: 1/a, 1/ab, 1/abc, 1/abcd, ...
         FrElement *inverses = new FrElement[length];
         E.fr.inv(inverses[length - 1], products[length - 1]);
-        for (int64_t index = length - 1; index > 0; index--) {
+        for (uint64_t index = length - 1; index > 0; index--) {
             E.fr.mul(inverses[index - 1], inverses[index], elements[index]);
         }
 
         elements[0] = inverses[0];
-        for (int64_t index = 1; index < length; index++) {
+        for (u_int64_t index = 1; index < length; index++) {
             E.fr.mul(elements[index], inverses[index], products[index - 1]);
         }
     }
@@ -1528,7 +1498,7 @@ namespace Fflonk {
         std::ostringstream ss;
         //   · denominator needed in step 8 and 9 of the verifier to multiply by 1/Z_H(xi)
         FrElement xiN = challenges["xi"];
-        for (u_int32_t i = 0; i < zkeyPower; i++) {
+        for (u_int64_t i = 0; i < zkeyPower; i++) {
             xiN = E.fr.square(xiN);
         }
         toInverse["zh"] = E.fr.sub(xiN, E.fr.one());
@@ -1553,7 +1523,7 @@ namespace Fflonk {
         u_int32_t size = std::max(1, (int) zkey->nPublic);
 
         FrElement w = E.fr.one();
-        for (u_int32_t i = 0; i < size; i++) {
+        for (u_int64_t i = 0; i < size; i++) {
             ss.str("");
             ss << "Li_" << (i + 1);
             toInverse[ss.str()] = E.fr.mul(E.fr.set(zkey->domainSize), E.fr.sub(challenges["xi"], w));
@@ -1658,7 +1628,7 @@ namespace Fflonk {
 
         long totalDuration = 0;
         ss.str("\n");
-        for (auto i = 0; i != T.size(); i++) {
+        for (char i = 0; i != T.size(); i++) {
             long duration = (i == 0 ? T[i].duration - T[0].duration : T[i].duration - T[i - 1].duration) * 1000;
             totalDuration += duration;
             if (T[i].label.compare("<RESET>") != 0) {

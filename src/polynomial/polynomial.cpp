@@ -126,7 +126,7 @@ template<typename Engine>
 void Polynomial<Engine>::blindCoefficients(FrElement blindingFactors[], u_int32_t length) {
     const u_int32_t polLength = this->length;
 
-    for (int i = 0; i < length; i++) {
+    for (u_int32_t i = 0; i < length; i++) {
         coef[polLength - length + i] = E.fr.add(coef[polLength - length + i], blindingFactors[i]);
         coef[i] = E.fr.sub(coef[i], blindingFactors[i]);
     }
@@ -197,7 +197,7 @@ typename Engine::FrElement Polynomial<Engine>::fastEvaluate(FrElement point) con
         }
     }
 
-    for (uint i = 1; i < nThreads; i++) {
+    for (int i = 1; i < nThreads; i++) {
         res[0] = E.fr.add(res[0], E.fr.mul(xN[i - 1], res[i*4]));
         xN[i] = E.fr.mul(xN[i - 1], xN[0]);
     }
@@ -207,7 +207,7 @@ typename Engine::FrElement Polynomial<Engine>::fastEvaluate(FrElement point) con
 
 template<typename Engine>
 void Polynomial<Engine>::add(Polynomial<Engine> &polynomial) {
-    FrElement *newCoef;
+    FrElement *newCoef = NULL;
     bool resize = polynomial.length > this->length;
 
     if (resize) {
@@ -217,7 +217,7 @@ void Polynomial<Engine>::add(Polynomial<Engine> &polynomial) {
     u_int64_t thisLength = this->length;
     u_int64_t polyLength = polynomial.length;
 
-#pragma omp parallel for
+    #pragma omp parallel for
     for (u_int64_t i = 0; i < std::max(thisLength, polyLength); i++) {
         FrElement a = i < thisLength ? this->coef[i] : E.fr.zero();
         FrElement b = i < polyLength ? polynomial.coef[i] : E.fr.zero();
@@ -368,7 +368,7 @@ void Polynomial<Engine>::divByMonic(uint32_t m, FrElement beta) {
 
     uint32_t nThreads = m;
     #pragma omp parallel for
-    for(int k = 0; k<nThreads;k++) {
+    for(uint32_t k = 0; k<nThreads;k++) {
         for (int i = d - 2 * m - k; i >= 0; i = i - nThreads) {
             if(i<0) break;
             uint32_t idx = k;
@@ -584,13 +584,13 @@ void Polynomial<Engine>::divZh(u_int64_t domainSize, int extension) {
     }
 
     int nThreads = pow(2, log2(omp_get_max_threads()));
-    int nElementsThread = domainSize / nThreads;
-    int nChunks = this->length / domainSize;
+    uint64_t nElementsThread = domainSize / nThreads;
+    uint64_t nChunks = this->length / domainSize;
 
-    for (uint i = 0; i < nChunks - 1; i++) {
-#pragma omp parallel for
-        for (uint k = 0; k < nThreads; k++) {
-            for (uint j = 0; j < nElementsThread; j++) {
+    for (uint64_t i = 0; i < nChunks - 1; i++) {
+    #pragma omp parallel for
+        for (int k = 0; k < nThreads; k++) {
+            for (uint64_t j = 0; j < nElementsThread; j++) {
                 int id = k;
                 u_int64_t idxBase = id * nElementsThread + j;
                 u_int64_t idx0 = idxBase + i * domainSize;

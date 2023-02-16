@@ -47,7 +47,6 @@ namespace Benchmark {
 
         double resultsIfft[finalPower - initialPower];
         double resultsFft[finalPower - initialPower];
-        double resultsMultiexp[finalPower - initialPower];
 
         //Benchmark IFFT's
         for (int power = initialPower; power <= finalPower; power++) {
@@ -91,7 +90,7 @@ namespace Benchmark {
         auto fdZkey = BinFileUtils::openExisting(ptauFile, "zkey", 2);
 
         G1PointAffine* PTau = new G1PointAffine[finalDomainSize];
-        memset(PTau, 0, sizeof(PTau));
+        memset(PTau, 0, sizeof(G1PointAffine) * finalDomainSize);
 
         int nThreads = omp_get_max_threads() / 2;
         ThreadUtils::parcpy(PTau,
@@ -122,7 +121,7 @@ namespace Benchmark {
     void Benchmark<Engine>::createBuffer(FrElement *buffer, u_int32_t domainSize) {
         buffer[0] = E.fr.one();
         buffer[1] = E.fr.one();
-        for (int i = 2; i < domainSize; i++) {
+        for (uint64_t i = 2; i < domainSize; i++) {
             buffer[i] = E.fr.add(buffer[i - 1], buffer[i - 2]);
         }
     }
@@ -141,6 +140,7 @@ namespace Benchmark {
             Polynomial<Engine> *polynomial = Polynomial<Engine>::fromEvaluations(E, fft, buffer, bufferCoef,
                                                                                  domainSize);
             time = omp_get_wtime() - time;
+            delete polynomial;
             bestTime = std::min(bestTime, time);
         }
 
@@ -167,6 +167,7 @@ namespace Benchmark {
             time = omp_get_wtime();
             Evaluations<Engine> *evaluations = new Evaluations<Engine>(E, fft, bufferEval, *polynomial, domainSize);
             time = omp_get_wtime() - time;
+            delete evaluations;
             bestTime = std::min(bestTime, time);
         }
 

@@ -141,10 +141,10 @@ template <typename Engine>
 std::string Dump<Engine>::getHash(const void *data, u_int32_t len)
 {
     unsigned char digest[32];
-    unsigned int outLen = keccak((void *)data, len, digest, sizeof(digest));
+    int64_t outLen = keccak((void *)data, len, digest, sizeof(digest));
 
     std::stringstream ss;
-    for (int i=0; i<outLen; i++) {
+    for (int64_t i = 0; i < outLen; i++) {
         ss << std::setw(2) << std::setfill('0') << std::hex << std::uppercase << static_cast<unsigned>(digest[i]);
     }
     return ss.str();

@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
 
             json jsonPublic;
             AltBn128::FrElement aux;
-            for (int i = 1; i <= zkeyHeader->nPublic; i++) {
+            for (u_int32_t i = 1; i <= zkeyHeader->nPublic; i++) {
                 AltBn128::Fr.toMontgomery(aux, wtnsData[i]);
                 jsonPublic.push_back(AltBn128::Fr.toString(aux));
             }
