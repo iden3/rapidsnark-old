@@ -322,8 +322,9 @@ void Polynomial<Engine>::byXNSubValue(int n, FrElement &value) {
     pol->add(*this);
 
     // Swap buffers
-    delete[] this->coef;
+    if(this->createBuffer) delete[] this->coef;
     this->coef = pol->coef;
+    delete pol;
 
     fixDegree();
 }
