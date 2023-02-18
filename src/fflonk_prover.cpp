@@ -91,6 +91,8 @@ namespace Fflonk {
             buffersLength += zkey->domainSize * 16;         // montgomery
 
             bigBufferBuffers = new FrElement[buffersLength];
+            int nThreads = omp_get_max_threads() / 2;
+            ThreadUtils::parset(bigBufferBuffers, 0, buffersLength * sizeof(FrElement), nThreads);
 
             u_int64_t accLength = 0;
             buffers["A"] = &bigBufferBuffers[accLength];
@@ -263,7 +265,7 @@ namespace Fflonk {
             polynomials["Sigma2"] = new Polynomial<Engine>(E, polPtr["Sigma2"], zkey->domainSize);
             polynomials["Sigma3"] = new Polynomial<Engine>(E, polPtr["Sigma3"], zkey->domainSize);
 
-            int nThreads = omp_get_max_threads() / 2;
+            nThreads = omp_get_max_threads() / 2;
 
             ThreadUtils::parcpy(polynomials["Sigma1"]->coef,
                                 (FrElement *) fdZkey->getSectionData(Zkey::ZKEY_FF_SIGMA1_SECTION),
@@ -1308,19 +1310,19 @@ namespace Fflonk {
         polynomials["F"] = Polynomial<Engine>::fromPolynomial(E, *polynomials["C2"], polPtr["F"]);
         polynomials["F"]->sub(*polynomials["R2"]);
         polynomials["F"]->mulScalar(alpha2);
-        polynomials["F"]->divByMonic(3, challenges["xi"]);
-        polynomials["F"]->divByMonic(3, challenges["xiw"]);
+        polynomials["F"]->divByVanishing(polPtr["L"], 3, challenges["xi"]);
+        polynomials["F"]->divByVanishing(polPtr["L"], 3, challenges["xiw"]);
 
         auto fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C1"], polPtr["remainder"]);
         fTmp->sub(*polynomials["R1"]);
         fTmp->mulScalar(challenges["alpha"]);
-        fTmp->divByMonic(4, challenges["xi"]);
+        fTmp->divByVanishing(polPtr["L"], 4, challenges["xi"]);
 
         polynomials["F"]->add(*fTmp);
 
         fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C0"], polPtr["remainder"]);
         fTmp->sub(*polynomials["R0"]);
-        fTmp->divByMonic(8, challenges["xi"]);
+        fTmp->divByVanishing(polPtr["L"], 8, challenges["xi"]);
 
         polynomials["F"]->add(*fTmp);
 
@@ -1374,7 +1376,7 @@ namespace Fflonk {
         takeTime(T2, "Computing L(X)*ZTS2(y)");
 
         LOG_TRACE("> Computing W' = L / ZTS2 polynomial");
-        polynomials["L"]->divByMonic(1, challenges["y"]);
+        polynomials["L"]->divByVanishing(polPtr["remainder"], 1, challenges["y"]);
         takeTime(T2, "Computing L divBy ZTS2");
 
         if (polynomials["L"]->getDegree() >= 9 * zkey->domainSize + 17) {
@@ -1443,7 +1445,7 @@ namespace Fflonk {
         fTmp->subScalar(evalR0Y);
         fTmp->mulScalar(preL0);
 
-        polynomials["F"]->add(*fTmp);
+        polynomials["L"]->add(*fTmp);
 
         LOG_TRACE("> Computing ZT polynomial");
         computeZT();
@@ -1574,6 +1576,8 @@ namespace Fflonk {
         const u_int64_t length = polynomial->getLength();
 
         FrElement *result = buffers["montgomery"];
+        int nThreads = omp_get_max_threads() / 2;
+        ThreadUtils::parset(result, 0,  length * sizeof(FrElement), nThreads);
 
         #pragma omp parallel for
         for (u_int32_t index = 0; index < length; ++index) {
@@ -1628,7 +1632,7 @@ namespace Fflonk {
 
         long totalDuration = 0;
         ss.str("\n");
-        for (char i = 0; i != T.size(); i++) {
+        for (uint32_t i = 0; i != T.size(); i++) {
             long duration = (i == 0 ? T[i].duration - T[0].duration : T[i].duration - T[i - 1].duration) * 1000;
             totalDuration += duration;
             if (T[i].label.compare("<RESET>") != 0) {

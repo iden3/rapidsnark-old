@@ -95,6 +95,8 @@ public:
 
     void divZh(u_int64_t domainSize, int extension = 4);
 
+    void divByZerofier(u_int64_t domainSize, FrElement beta);
+
     void byX();
 
     static Polynomial<Engine>* lagrangePolynomialInterpolation(FrElement xArr[], FrElement yArr[], u_int32_t length);

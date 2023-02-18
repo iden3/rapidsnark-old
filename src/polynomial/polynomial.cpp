@@ -459,8 +459,8 @@ Polynomial<Engine> *Polynomial<Engine>::divByVanishing(FrElement *reservedBuffer
     ThreadUtils::parset(coef, 0, this->length * sizeof(FrElement), nThreads);
 
 #pragma omp parallel for
-    for (int k = 0; k < m; k++) {
-        for (int32_t i = this->length - 1 - k; i >= m; i = i - m) {
+    for (uint32_t k = 0; k < m; k++) {
+        for (uint32_t i = this->length - 1 - k; i >= m; i = i - m) {
             FrElement leadingCoef = polR->coef[i];
             if (E.fr.eq(E.fr.zero(), leadingCoef)) continue;
 
@@ -600,6 +600,72 @@ void Polynomial<Engine>::divZh(u_int64_t domainSize, int extension) {
 
                 if (i > (domainSize * (extension - 1) - extension)) {
                     if (!E.fr.isZero(coef[idx1])) {
+                        throw std::runtime_error("Polynomial is not divisible");
+                    }
+                }
+            }
+        }
+    }
+
+    fixDegree();
+}
+
+template<typename Engine>
+void Polynomial<Engine>::divByZerofier(u_int64_t n, FrElement beta) {
+    FrElement invBeta, invBetaNeg;
+    FrElement negOne;
+    E.fr.neg(negOne, E.fr.one());
+    E.fr.inv(invBeta, beta);
+    E.fr.neg(invBetaNeg, invBeta);
+
+    bool isOne = E.fr.eq(E.fr.one(), invBetaNeg);
+    bool isNegOne = E.fr.eq(negOne, invBetaNeg);
+
+    if(!isOne) {
+        #pragma omp parallel for
+        for (u_int64_t i = 0; i < n; i++) {
+            // If invBetaNeg === -1 we'll save a multiplication changing it by a neg function call
+            if(isNegOne) {
+                E.fr.neg(this->coef[i], this->coef[i]);
+            } else {
+                this->coef[i] = E.fr.mul(invBetaNeg, this->coef[i]);
+            }
+        }
+    }
+
+    int nThreads = pow(2, log2(omp_get_max_threads()));
+    uint64_t nElementsThread = n / nThreads;
+    uint64_t nChunks = this->length / n;
+
+    isOne = E.fr.eq(E.fr.one(), invBeta);
+    isNegOne = E.fr.eq(negOne, invBeta);
+
+    for (uint64_t i = 0; i < nChunks - 1; i++) {
+        #pragma omp parallel for
+        for (int k = 0; k < nThreads; k++) {
+            for (uint64_t j = 0; j < nElementsThread; j++) {
+                int id = k;
+                u_int64_t idxBase = id * nElementsThread + j;
+                u_int64_t idx0 = idxBase + i * n;
+                u_int64_t idx1 = idxBase + (i + 1) * n;
+
+                FrElement element = E.fr.sub(coef[idx0], coef[idx1]);
+
+                // If invBeta === 1 we'll not do anything
+                if(!isOne) {
+                    // If invBeta === -1 we'll save a multiplication changing it by a neg function call
+                    if(isNegOne) {
+                        E.fr.neg(element, element);
+                    } else {
+                        element = E.fr.mul(invBeta, element);
+                    }
+                }
+
+                coef[idx1] = element;
+
+                // Check if polynomial is divisible by checking if n high coefficients are zero
+                if (i > this->length - n - 1) {
+                    if (!E.fr.isZero(element)) {
                         throw std::runtime_error("Polynomial is not divisible");
                     }
                 }
