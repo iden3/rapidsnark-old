@@ -1508,7 +1508,16 @@ namespace Fflonk {
         //   · denominator needed in step 10 and 11 of the verifier
         //     toInverse.yBatch -> Computed in round5, computeL()
 
-        //   · denominator needed in the verifier when computing L_i^{S1}(X) and L_i^{S2}(X)
+        //   · denominator needed in the verifier when computing L_i^{S0}(X), L_i^{S1}(X) and L_i^{S2}(X)
+
+        for (uint i = 0; i < 8; i++)
+        {
+            ss.str("");
+            ss << "LiS0_" << (i + 1);
+            toInverse[ss.str()] = computeLiS0(i);
+        }
+
+
         for (uint i = 0; i < 4; i++) {
             ss.str("");
             ss << "LiS1_" << (i + 1);
@@ -1540,6 +1549,21 @@ namespace Fflonk {
 
         E.fr.inv(mulAccumulator, mulAccumulator);
         return mulAccumulator;
+    }
+
+    template <typename Engine>
+    typename Engine::FrElement FflonkProver<Engine>::computeLiS0(u_int32_t i)
+    {
+        // Compute L_i^{(S0)}(y)
+        u_int32_t idx = i;
+        FrElement den = E.fr.one();
+        for (uint j = 0; j < 7; j++)
+        {
+            idx = (idx + 1) % 8;
+
+            den = E.fr.mul(den, E.fr.sub(roots["S0h0"][i], roots["S0h0"][idx]));
+        }
+        return den;
     }
 
     template<typename Engine>
