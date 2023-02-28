@@ -407,8 +407,8 @@ namespace Fflonk {
             proof->addEvaluationCommitment("inv", getMontgomeryBatchedInverse());
             takeTime(T1, "Compute Montgomery batched inverse");
 
-            printTimer(T1);
-            printTimer(T2);
+            //printTimer(T1);
+            //printTimer(T2);
 
             // Prepare public inputs
             json publicSignals;
@@ -726,9 +726,15 @@ namespace Fflonk {
         // Compute permutation challenge beta
         LOG_TRACE("> Computing challenges beta and gamma");
         transcript->reset();
+
+        //G1Point C0 = *((G1Point *)zkey->C0);
+        //dump->dump("C0", C0);
+        //transcript->addPolCommitment(C0);
+
         for (u_int32_t i = 0; i < zkey->nPublic; i++) {
             transcript->addScalar(buffers["A"][i]);
         }
+
         transcript->addPolCommitment(proof->getPolynomialCommitment("C1"));
         challenges["beta"] = transcript->getChallenge();
         std::ostringstream ss;

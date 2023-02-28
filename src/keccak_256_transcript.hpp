@@ -41,6 +41,6 @@ public:
     typename Engine::FrElement getChallenge();
 };
 
-#include "keccak_256_transcript.cpp"
+#include "keccak_256_transcript.c.hpp"
 
 #endif

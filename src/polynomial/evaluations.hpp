@@ -36,6 +36,6 @@ public:
     u_int64_t getLength() const;
 };
 
-#include "evaluations.cpp"
+#include "evaluations.c.hpp"
 
 #endif

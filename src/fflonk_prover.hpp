@@ -154,6 +154,6 @@ namespace Fflonk {
     };
 }
 
-#include "fflonk_prover.cpp"
+#include "fflonk_prover.c.hpp"
 
 #endif

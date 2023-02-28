@@ -11,8 +11,6 @@
 #include "polynomial/evaluations.hpp"
 #include "dump.hpp"
 
-using json = nlohmann::json;
-
 namespace Benchmark {
 
     template<typename Engine>

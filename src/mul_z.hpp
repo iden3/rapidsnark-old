@@ -94,6 +94,6 @@ public:
     }
 };
 
-#include "mul_z.cpp"
+#include "mul_z.c.hpp"
 
 #endif

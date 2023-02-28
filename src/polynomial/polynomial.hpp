@@ -106,6 +106,6 @@ public:
     void print();
 };
 
-#include "polynomial.cpp"
+#include "polynomial.c.hpp"
 
 #endif

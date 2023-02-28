@@ -29,6 +29,6 @@ public:
     typename Engine::G1Point multiExponentiation(G1PointAffine *PTau) const;
 };
 
-#include "cpolynomial.cpp"
+#include "cpolynomial.c.hpp"
 
 #endif

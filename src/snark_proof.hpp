@@ -35,6 +35,6 @@ public :
     json toJson();
 };
 
-#include "snark_proof.cpp"
+#include "snark_proof.c.hpp"
 
 #endif
