@@ -17,6 +17,9 @@ namespace Fflonk {
     template<typename Engine>
     FflonkProver<Engine>::FflonkProver(Engine &_E) : E(_E) {
         curveName = CurveUtils::getCurveNameByEngine();
+    
+        Logger::getInstance()->enableConsoleLogging();
+        Logger::getInstance()->updateLogLevel(LOG_LEVEL_DEBUG);
     }
 
     template<typename Engine>
@@ -25,6 +28,10 @@ namespace Fflonk {
             delete fft;
         }
     }
+
+    // template<typename Engine>
+    // std::tuple <json, json> FflonkProver<Engine>::prove(BinFileUtils::BinFile *fdZkey, FrElement *wtns) {
+    // }
 
     template<typename Engine>
     std::tuple <json, json> FflonkProver<Engine>::prove(BinFileUtils::BinFile *fdZkey, BinFileUtils::BinFile *fdWtns) {
@@ -63,10 +70,13 @@ namespace Fflonk {
                 throw std::invalid_argument("Curve of the witness does not match the curve of the proving key");
             }
 
-            //TODO compare zkey field with current field
-//            if (mpz_cmp(zkeyHeader->rPrime, altBbn128r) != 0) {
-//                throw std::invalid_argument( "zkey curve not supported" );
-//            }
+            mpz_t altBbn128r;
+            mpz_init(altBbn128r);
+            mpz_set_str(altBbn128r, "21888242871839275222246405745257275088548364400416034343698204186575808495617", 10);
+
+            if (mpz_cmp(zkey->rPrime, altBbn128r) != 0) {
+                throw std::invalid_argument( "zkey curve not supported" );
+            }
 
             if (wtns->nVars != zkey->nVars - zkey->nAdditions) {
                 std::ostringstream ss;
@@ -453,10 +463,8 @@ namespace Fflonk {
         // STEP 1.1 - Generate random blinding scalars (b_1, ..., b9) ∈ F
 
         //0 index not used, set to zero
-        //TODO check it fill all bytes with random values!!!!
-        //randombytes_buf((void *) &blindingFactors[0], sizeof(blindingFactors));
-        for (u_int32_t i = 0; i < zkey->nAdditions; i++) {
-            blindingFactors[i] = E.fr.one();
+        for (u_int32_t i = 1; i < 10; i++) {
+            randombytes_buf((void *)&(blindingFactors[i].v[0]), sizeof(FrElement) - 1);
         }
         takeTime(T2, "Blinding coefficients");
 

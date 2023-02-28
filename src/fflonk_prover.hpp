@@ -81,6 +81,8 @@ namespace Fflonk {
 
         std::tuple <json, json> prove(BinFileUtils::BinFile *fdZkey, BinFileUtils::BinFile *fdWtns);
 
+        // std::tuple <json, json> prove(BinFileUtils::BinFile *fdZkey, FrElement *wtns);
+
         void calculateAdditions(BinFileUtils::BinFile *fdZkey);
 
         FrElement getWitness(u_int64_t idx);
