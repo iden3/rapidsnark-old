@@ -458,7 +458,7 @@ Polynomial<Engine> *Polynomial<Engine>::divByVanishing(FrElement *reservedBuffer
     ThreadUtils::parcpy(reservedBuffer, coef, this->length * sizeof(FrElement), nThreads);
     ThreadUtils::parset(coef, 0, this->length * sizeof(FrElement), nThreads);
 
-#pragma omp parallel for
+    #pragma omp parallel for
     for (uint32_t k = 0; k < m; k++) {
         for (uint32_t i = this->length - 1 - k; i >= m; i = i - m) {
             FrElement leadingCoef = polR->coef[i];
@@ -584,8 +584,11 @@ void Polynomial<Engine>::divZh(u_int64_t domainSize, int extension) {
         E.fr.neg(this->coef[i], this->coef[i]);
     }
 
-    int nThreads = pow(2, log2(omp_get_max_threads()));
+    int nThreads = pow(2, floor(log2(omp_get_max_threads())));
     uint64_t nElementsThread = domainSize / nThreads;
+
+    assert(domainSize == nElementsThread * nThreads);
+
     uint64_t nChunks = this->length / domainSize;
 
     for (uint64_t i = 0; i < nChunks - 1; i++) {
@@ -612,10 +615,12 @@ void Polynomial<Engine>::divZh(u_int64_t domainSize, int extension) {
 
 template<typename Engine>
 void Polynomial<Engine>::divByZerofier(u_int64_t n, FrElement beta) {
-    FrElement invBeta, invBetaNeg;
     FrElement negOne;
     E.fr.neg(negOne, E.fr.one());
+
+    FrElement invBeta;
     E.fr.inv(invBeta, beta);
+    FrElement invBetaNeg;
     E.fr.neg(invBetaNeg, invBeta);
 
     bool isOne = E.fr.eq(E.fr.one(), invBetaNeg);
@@ -633,7 +638,7 @@ void Polynomial<Engine>::divByZerofier(u_int64_t n, FrElement beta) {
         }
     }
 
-    int nThreads = pow(2, log2(omp_get_max_threads()));
+    int nThreads = pow(2, floor(log2(omp_get_max_threads())));
     uint64_t nElementsThread = n / nThreads;
     uint64_t nChunks = this->length / n;
 
