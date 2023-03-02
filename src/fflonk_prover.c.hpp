@@ -414,8 +414,8 @@ namespace Fflonk
             proof->addEvaluationCommitment("inv", getMontgomeryBatchedInverse());
             takeTime(T1, "Compute Montgomery batched inverse");
 
-            // printTimer(T1);
-            // printTimer(T2);
+            printTimer(T1);
+            printTimer(T2);
 
             // Prepare public inputs
             json publicSignals;
@@ -1398,19 +1398,19 @@ namespace Fflonk
         polynomials["F"] = Polynomial<Engine>::fromPolynomial(E, *polynomials["C2"], polPtr["F"]);
         polynomials["F"]->sub(*polynomials["R2"]);
         polynomials["F"]->mulScalar(alpha2);
-        polynomials["F"]->divByVanishing(polPtr["L"], 3, challenges["xi"]);
-        polynomials["F"]->divByVanishing(polPtr["L"], 3, challenges["xiw"]);
+        polynomials["F"]->divByZerofier(3, challenges["xi"]);
+        polynomials["F"]->divByZerofier(3, challenges["xiw"]);
 
         auto fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C1"], polPtr["remainder"]);
         fTmp->sub(*polynomials["R1"]);
         fTmp->mulScalar(challenges["alpha"]);
-        fTmp->divByVanishing(polPtr["L"], 4, challenges["xi"]);
+        fTmp->divByZerofier(4, challenges["xi"]);
 
         polynomials["F"]->add(*fTmp);
 
         fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C0"], polPtr["remainder"]);
         fTmp->sub(*polynomials["R0"]);
-        fTmp->divByVanishing(polPtr["L"], 8, challenges["xi"]);
+        fTmp->divByZerofier(8, challenges["xi"]);
 
         polynomials["F"]->add(*fTmp);
 
@@ -1467,7 +1467,7 @@ namespace Fflonk
         takeTime(T2, "Computing L(X)*ZTS2(y)");
 
         LOG_TRACE("> Computing W' = L / ZTS2 polynomial");
-        polynomials["L"]->divByVanishing(polPtr["remainder"], 1, challenges["y"]);
+        polynomials["L"]->divByZerofier(1, challenges["y"]);
         takeTime(T2, "Computing L divBy ZTS2");
 
         if (polynomials["L"]->getDegree() >= 9 * zkey->domainSize + 17)

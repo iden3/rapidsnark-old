@@ -414,40 +414,8 @@ Polynomial<Engine> *Polynomial<Engine>::divByVanishing(uint32_t m, FrElement bet
     return polR;
 }
 
-
-//template<typename Engine>
-//Polynomial<Engine> *Polynomial<Engine>::divByVanishingMulti(uint32_t m[], FrElement beta[], uint32_t length) {
-//    if(this->degree < m) {
-//        throw std::runtime_error("divByVanishing polynomial divisor must be of degree lower than the dividend polynomial");
-//    }
-//
-//    Polynomial<Engine> *polR = new Polynomial<Engine>(this->E, this->length);
-//    FrElement *ptr = this->coef;
-//    this->coef = polR->coef;
-//    polR->coef = ptr;
-//
-//    for(uint32_t l=0;l<length;l++) {
-//#pragma omp parallel for
-//        for (int k = 0; k < m[l]; k++) {
-//            for (int32_t i = this->length - 1 - k; i >= m[l]; i = i - m[l]) {
-//                FrElement leadingCoef = polR->coef[i];
-//                if (E.fr.eq(E.fr.zero(), leadingCoef)) continue;
-//
-//                polR->coef[i] = E.fr.zero();
-//                polR->coef[i - m[l]] = E.fr.add(polR->coef[i - m[l]], E.fr.mul(beta[l], leadingCoef));
-//                this->coef[i - m[l]] = E.fr.add(this->coef[i - m[l]], leadingCoef);
-//            }
-//        }
-//    }
-//
-//    fixDegree();
-//    polR->fixDegree();
-//
-//    return polR;
-//}
-
 template<typename Engine>
-Polynomial<Engine> *Polynomial<Engine>::divByVanishing(FrElement *reservedBuffer, uint32_t m, FrElement beta) {
+Polynomial<Engine> *Polynomial<Engine>::divByVanishing(FrElement *reservedBuffer, uint64_t m, FrElement beta) {
     if(this->degree < m) {
         throw std::runtime_error("divByVanishing polynomial divisor must be of degree lower than the dividend polynomial");
     }
@@ -470,9 +438,9 @@ Polynomial<Engine> *Polynomial<Engine>::divByVanishing(FrElement *reservedBuffer
         }
     }
 
-    fixDegree();
+    fixDegreeFrom(this->degree);
 
-    polR->fixDegree();
+    polR->fixDegreeFrom(this->degree);
 
     return polR;
 }
@@ -610,7 +578,7 @@ void Polynomial<Engine>::divZh(u_int64_t domainSize, int extension) {
         }
     }
 
-    fixDegree();
+    fixDegreeFrom(this->degree);
 }
 
 template<typename Engine>
@@ -639,20 +607,23 @@ void Polynomial<Engine>::divByZerofier(u_int64_t n, FrElement beta) {
     }
 
     int nThreads = pow(2, floor(log2(omp_get_max_threads())));
+    nThreads = std::min(n, (u_int64_t)nThreads);
+
     uint64_t nElementsThread = n / nThreads;
     uint64_t nChunks = this->length / n;
 
     isOne = E.fr.eq(E.fr.one(), invBeta);
     isNegOne = E.fr.eq(negOne, invBeta);
 
-    for (uint64_t i = 0; i < nChunks - 1; i++) {
-        #pragma omp parallel for
-        for (int k = 0; k < nThreads; k++) {
+    #pragma omp parallel for
+    for (int k = 0; k < nThreads; k++) {
+        for (uint64_t i = 0; i < nChunks - 1; i++) {
             for (uint64_t j = 0; j < nElementsThread; j++) {
-                int id = k;
-                u_int64_t idxBase = id * nElementsThread + j;
+                u_int64_t idxBase = k * nElementsThread + j;
                 u_int64_t idx0 = idxBase + i * n;
                 u_int64_t idx1 = idxBase + (i + 1) * n;
+
+                if(idx1 > this->degree) break;
 
                 FrElement element = E.fr.sub(coef[idx0], coef[idx1]);
 
@@ -678,7 +649,7 @@ void Polynomial<Engine>::divByZerofier(u_int64_t n, FrElement beta) {
         }
     }
 
-    fixDegree();
+    fixDegreeFrom(this->degree);
 }
 
 template<typename Engine>
