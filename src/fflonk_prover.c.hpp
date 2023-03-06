@@ -26,31 +26,35 @@ namespace Fflonk
     }
 
     template <typename Engine>
-    FflonkProver<Engine>::~FflonkProver()
-    {
+    FflonkProver<Engine>::~FflonkProver() {}
+
+    template<typename Engine>
+    std::tuple <json, json> FflonkProver<Engine>::prove(BinFileUtils::BinFile *fdZkey, BinFileUtils::BinFile *fdWtns) {
+            LOG_TRACE("> Reading witness file");
+
+            this->fdWtns = fdWtns;
+
+            auto wtnsHeader = WtnsUtils::loadHeader(fdWtns);
+
+            // Read witness data
+            LOG_TRACE("> Reading witness file data");
+            buffWitness = (FrElement *)fdWtns->getSectionData(2);
+            takeTime(T1, "Reading witness file data");
+
+            return this->prove(fdZkey, buffWitness, wtnsHeader.get());
     }
 
-    // template<typename Engine>
-    // std::tuple <json, json> FflonkProver<Engine>::prove(BinFileUtils::BinFile *fdZkey, FrElement *wtns) {
-    // }
-
     template <typename Engine>
-    std::tuple<json, json> FflonkProver<Engine>::prove(BinFileUtils::BinFile *fdZkey, BinFileUtils::BinFile *fdWtns)
+    std::tuple<json, json> FflonkProver<Engine>::prove(BinFileUtils::BinFile *fdZkey, FrElement *buffWitness, WtnsUtils::Header* wtnsHeader)
     {
         try
         {
             resetTimer(T1);
             LOG_TRACE("FFLONK PROVER STARTED");
 
-            LOG_TRACE("> Reading witness file");
-
             dump = new Dump::Dump<Engine>(E);
 
             this->fdZkey = fdZkey;
-            this->fdWtns = fdWtns;
-
-            auto wtns = WtnsUtils::loadHeader(fdWtns);
-            takeTime(T1, "Load wtns fflonk header");
 
             LOG_TRACE("> Reading zkey file");
 
@@ -70,9 +74,11 @@ namespace Fflonk
 
             mulZ = new MulZ<Engine>(E, fft);
 
-            if (mpz_cmp(zkey->rPrime, wtns->prime) != 0)
-            {
-                throw std::invalid_argument("Curve of the witness does not match the curve of the proving key");
+            if(NULL != wtnsHeader) {
+                if (mpz_cmp(zkey->rPrime, wtnsHeader->prime) != 0)
+                {
+                    throw std::invalid_argument("Curve of the witness does not match the curve of the proving key");
+                }
             }
 
             mpz_t altBbn128r;
@@ -84,12 +90,14 @@ namespace Fflonk
                 throw std::invalid_argument("zkey curve not supported");
             }
 
-            if (wtns->nVars != zkey->nVars - zkey->nAdditions)
-            {
-                std::ostringstream ss;
-                ss << "Invalid witness length. Circuit: " << zkey->nVars << ", witness: " << wtns->nVars << ", "
-                   << zkey->nAdditions;
-                throw std::invalid_argument(ss.str());
+            if(NULL != wtnsHeader) {
+                if (wtnsHeader->nVars != zkey->nVars - zkey->nAdditions)
+                {
+                    std::ostringstream ss;
+                    ss << "Invalid witness length. Circuit: " << zkey->nVars << ", witness: " << wtnsHeader->nVars << ", "
+                    << zkey->nAdditions;
+                    throw std::invalid_argument(ss.str());
+                }
             }
 
             sDomain = zkey->domainSize * sizeof(FrElement);
@@ -335,11 +343,6 @@ namespace Fflonk
 
             takeTime(T1, "Reading circuit file data");
             resetTimer(T2);
-
-            // Read witness data
-            LOG_TRACE("> Reading witness file data");
-            buffWitness = (FrElement *)fdWtns->getSectionData(2);
-            takeTime(T1, "Reading witness file data");
 
             // First element in plonk is not used and can be any value. (But always the same).
             // We set it to zero to go faster in the exponentiations.

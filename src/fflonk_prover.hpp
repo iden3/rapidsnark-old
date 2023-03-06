@@ -14,6 +14,7 @@
 #include "mul_z.hpp"
 #include "dump.hpp"
 #include "keccak_256_transcript.hpp"
+#include "wtns_utils.hpp"
 
 using json = nlohmann::json;
 using namespace std::chrono;
@@ -83,7 +84,7 @@ namespace Fflonk {
 
         std::tuple <json, json> prove(BinFileUtils::BinFile *fdZkey, BinFileUtils::BinFile *fdWtns);
 
-        // std::tuple <json, json> prove(BinFileUtils::BinFile *fdZkey, FrElement *wtns);
+        std::tuple <json, json> prove(BinFileUtils::BinFile *fdZkey, FrElement *wtns, WtnsUtils::Header* wtnsHeader = NULL);
 
         void calculateAdditions(BinFileUtils::BinFile *fdZkey);
 
