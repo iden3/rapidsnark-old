@@ -640,7 +640,7 @@ void Polynomial<Engine>::divByZerofier(u_int64_t n, FrElement beta) {
                 coef[idx1] = element;
 
                 // Check if polynomial is divisible by checking if n high coefficients are zero
-                if (i > this->length - n - 1) {
+                if (i > this->degree - n) {
                     if (!E.fr.isZero(element)) {
                         throw std::runtime_error("Polynomial is not divisible");
                     }

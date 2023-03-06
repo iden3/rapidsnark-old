@@ -12,7 +12,6 @@
 #include "polynomial/evaluations.hpp"
 #include <nlohmann/json.hpp>
 #include "mul_z.hpp"
-#include "dump.hpp"
 #include "keccak_256_transcript.hpp"
 #include "wtns_utils.hpp"
 
@@ -29,24 +28,9 @@ namespace Fflonk {
         using G1Point = typename Engine::G1Point;
         using G1PointAffine = typename Engine::G1PointAffine;
 
-        Dump::Dump<Engine> *dump;
-
-        struct ProcessingTime {
-            std::string label;
-            double duration;
-
-            ProcessingTime(std::string label, double duration) : label(label), duration(duration) {}
-        };
-
-        std::vector <ProcessingTime> T1;
-        std::vector <ProcessingTime> T2;
-
         Engine &E;
         FFT<typename Engine::Fr> *fft = NULL;
         MulZ<Engine> *mulZ;
-
-        BinFileUtils::BinFile *fdZkey;
-        BinFileUtils::BinFile *fdWtns;
 
         Zkey::FflonkZkeyHeader *zkey;
         u_int32_t zkeyPower;
@@ -149,13 +133,6 @@ namespace Fflonk {
         G1Point multiExponentiation(Polynomial<Engine> *polynomial);
 
         G1Point multiExponentiation(Polynomial<Engine> *polynomial, u_int32_t nx, u_int64_t x[]);
-
-        void printPol(std::string name, const Polynomial<Engine> *polynomial);
-
-        void resetTimer(std::vector <ProcessingTime> &T);
-        void takeTime(std::vector <ProcessingTime> &T, const std::string label);
-
-        void printTimer(std::vector <ProcessingTime> &T);
     };
 }
 
