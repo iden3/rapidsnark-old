@@ -7,7 +7,9 @@ using json = nlohmann::json;
 
 
 void ProverAPI::postInput(const Rest::Request& request, Http::ResponseWriter response) {
-    fullProver.startProve(request.body());
+    std::string circuit(request.param(":circuit").as<std::string>());
+    LOG_TRACE(circuit);
+    fullProver.startProve(request.body(), circuit);
     response.send(Http::Code::Ok);
 }
 

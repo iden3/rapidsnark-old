@@ -17,6 +17,8 @@ class FullProver {
 
     std::string pendingInput;
     std::string executingInput;
+    std::string pendingCircuit;
+    std::string executingCircuit;
 
     std::map<std::string, std::unique_ptr<Groth16::Prover<AltBn128::Engine>>> provers;
     std::map<std::string, std::unique_ptr<ZKeyUtils::Header>> zkHeaders;
@@ -40,7 +42,7 @@ class FullProver {
 public: 
     FullProver(std::string zkeyFileNames[], int size);
     ~FullProver();
-    void startProve(std::string input);
+    void startProve(std::string input, std::string circuit);
     void abort();
     json getStatus();
     std::string &getErrString() { return errString; };

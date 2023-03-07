@@ -20,41 +20,42 @@ std::string getfilename(std::string path)
 
 FullProver::FullProver(std::string zkeyFileNames[], int size) {
     pendingInput="";
+    pendingCircuit="";
     canceled = false;
 
     mpz_init(altBbn128r);
     mpz_set_str(altBbn128r, "21888242871839275222246405745257275088548364400416034343698204186575808495617", 10);
 
     for(int i = 0; i < size; i++) {
-        std::string circuitHash = getfilename(zkeyFileNames[i]);
-        zKeys[circuitHash] = BinFileUtils::openExisting(zkeyFileNames[i], "zkey", 1);
-        zkHeaders[circuitHash] = ZKeyUtils::loadHeader(zKeys[circuitHash].get());
+        std::string circuit = getfilename(zkeyFileNames[i]);
+        zKeys[circuit] = BinFileUtils::openExisting(zkeyFileNames[i], "zkey", 1);
+        zkHeaders[circuit] = ZKeyUtils::loadHeader(zKeys[circuit].get());
 
         std::string proofStr;
-        if (mpz_cmp(zkHeaders[circuitHash]->rPrime, altBbn128r) != 0) {
+        if (mpz_cmp(zkHeaders[circuit]->rPrime, altBbn128r) != 0) {
             throw std::invalid_argument( "zkey curve not supported" );
         }
         
         std::ostringstream ss1;
-        ss1 << "circuit: " << circuitHash;
+        ss1 << "circuit: " << circuit;
         LOG_DEBUG(ss1);
 
-        provers[circuitHash] = Groth16::makeProver<AltBn128::Engine>(
-            zkHeaders[circuitHash]->nVars,
-            zkHeaders[circuitHash]->nPublic,
-            zkHeaders[circuitHash]->domainSize,
-            zkHeaders[circuitHash]->nCoefs,
-            zkHeaders[circuitHash]->vk_alpha1,
-            zkHeaders[circuitHash]->vk_beta1,
-            zkHeaders[circuitHash]->vk_beta2,
-            zkHeaders[circuitHash]->vk_delta1,
-            zkHeaders[circuitHash]->vk_delta2,
-            zKeys[circuitHash]->getSectionData(4),    // Coefs
-            zKeys[circuitHash]->getSectionData(5),    // pointsA
-            zKeys[circuitHash]->getSectionData(6),    // pointsB1
-            zKeys[circuitHash]->getSectionData(7),    // pointsB2
-            zKeys[circuitHash]->getSectionData(8),    // pointsC
-            zKeys[circuitHash]->getSectionData(9)     // pointsH1
+        provers[circuit] = Groth16::makeProver<AltBn128::Engine>(
+            zkHeaders[circuit]->nVars,
+            zkHeaders[circuit]->nPublic,
+            zkHeaders[circuit]->domainSize,
+            zkHeaders[circuit]->nCoefs,
+            zkHeaders[circuit]->vk_alpha1,
+            zkHeaders[circuit]->vk_beta1,
+            zkHeaders[circuit]->vk_beta2,
+            zkHeaders[circuit]->vk_delta1,
+            zkHeaders[circuit]->vk_delta2,
+            zKeys[circuit]->getSectionData(4),    // Coefs
+            zKeys[circuit]->getSectionData(5),    // pointsA
+            zKeys[circuit]->getSectionData(6),    // pointsB1
+            zKeys[circuit]->getSectionData(7),    // pointsB2
+            zKeys[circuit]->getSectionData(8),    // pointsC
+            zKeys[circuit]->getSectionData(9)     // pointsH1
         );
     }
 
@@ -65,11 +66,12 @@ FullProver::~FullProver() {
     mpz_clear(altBbn128r);
 }
 
-void FullProver::startProve(std::string input) {
+void FullProver::startProve(std::string input, std::string circuit) {
     LOG_TRACE("FullProver::startProve begin");
     LOG_DEBUG(input);
     std::lock_guard<std::mutex> guard(mtx);
     pendingInput = input;
+    pendingCircuit = circuit;
     if (status == busy) {
         abort();
     }
@@ -81,10 +83,13 @@ void FullProver::checkPending() {
     LOG_TRACE("FullProver::checkPending begin");
     if (status != busy) {
         std::string input = pendingInput;
-        if (input != "") {
+        std::string circuit = pendingCircuit;
+        if (input != "" && circuit != "") {
             status = busy;
             executingInput = pendingInput;
+            executingCircuit = pendingCircuit;
             pendingInput = "";
+            pendingCircuit = "";
             errString = "";
             canceled = false;
             proof = nlohmann::detail::value_t::null;
@@ -102,14 +107,14 @@ void FullProver::thread_calculateProve() {
         LOG_TRACE(executingInput);
         // Generate witness
         json j = json::parse(executingInput);
-        std::string circuitHash = j["circuitHash"];
+        std::string circuit = executingCircuit;
         
-        std::ofstream file("./build/input_"+ circuitHash +".json");
+        std::ofstream file("./build/input_"+ circuit +".json");
         file << j;
         file.close();
 
-        std::string witnessFile("./build/" + circuitHash + ".wtns");
-        std::string command("./build/" + circuitHash + " ./build/input_"+ circuitHash +".json " + witnessFile);
+        std::string witnessFile("./build/" + circuit + ".wtns");
+        std::string command("./build/" + circuit + " ./build/input_"+ circuit +".json " + witnessFile);
         LOG_TRACE(command);
         std::array<char, 128> buffer;
         std::string result;
@@ -141,13 +146,13 @@ void FullProver::thread_calculateProve() {
 
         pubData.clear();
         AltBn128::FrElement aux;
-        for (int i=1; i<=zkHeaders[circuitHash]->nPublic; i++) {
+        for (int i=1; i<=zkHeaders[circuit]->nPublic; i++) {
             AltBn128::Fr.toMontgomery(aux, wtnsData[i]);
             pubData.push_back(AltBn128::Fr.toString(aux));
         }
         
         if (!isCanceled()) {
-            proof = provers[circuitHash]->prove(wtnsData)->toJson();
+            proof = provers[circuit]->prove(wtnsData)->toJson();
         } else {
             LOG_TRACE("AVOIDING prove");
             proof = {};

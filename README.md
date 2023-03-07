@@ -58,7 +58,7 @@ You have an example of the usage calling the server endpoints to generate the pr
 
 To test a request you should pass an `input.json` as a parameter to the request call.
 ````sh
-node tools/request.js ./input.json
+node tools/request.js <input.json> <circuit>
 ````
 ## Benchmark
 

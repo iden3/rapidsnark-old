@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     Routes::Get(router, "/status", Routes::bind(&ProverAPI::getStatus, &proverAPI));
     Routes::Post(router, "/start", Routes::bind(&ProverAPI::postStart, &proverAPI));
     Routes::Post(router, "/stop", Routes::bind(&ProverAPI::postStop, &proverAPI));
-    Routes::Post(router, "/input", Routes::bind(&ProverAPI::postInput, &proverAPI));
+    Routes::Post(router, "/input/:circuit", Routes::bind(&ProverAPI::postInput, &proverAPI));
     Routes::Post(router, "/cancel", Routes::bind(&ProverAPI::postCancel, &proverAPI));
     server.setHandler(router.handler());
     std::string serverReady("Server ready on port " + std::to_string(port) + "...");
