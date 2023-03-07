@@ -23,7 +23,7 @@ function createFieldSources() {
     } else throw("Unsupported platform");
 }
 
-function buildPistche() {
+function buildPistache() {
     sh("git submodule init && git submodule update");
     sh("mkdir -p build", {cwd: "depends/pistache"});
     sh("cmake -G \"Unix Makefiles\" -DCMAKE_BUILD_TYPE=Release ..", {cwd: "depends/pistache/build"});
@@ -88,7 +88,7 @@ function buildProver() {
 cli({
     cleanAll,
     createFieldSources,
-    buildPistche,
+    buildPistache,
     buildProverServer,
     buildProver
 });
