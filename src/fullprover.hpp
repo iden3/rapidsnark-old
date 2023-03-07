@@ -4,10 +4,11 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
+#include <mutex>
 #include "alt_bn128.hpp"
 #include "groth16.hpp"
-#include "calcwit.hpp"
 #include "binfile_utils.hpp"
+#include "zkey_utils.hpp"
 
 class FullProver {
     enum Status {aborted = -2, busy = -1,  failed = 0, success = 1, unverified =2, uninitialized=3, initializing=5, ready=6 };
@@ -17,21 +18,18 @@ class FullProver {
     std::string pendingInput;
     std::string executingInput;
 
+    std::map<std::string, std::unique_ptr<Groth16::Prover<AltBn128::Engine>>> provers;
+    std::map<std::string, std::unique_ptr<ZKeyUtils::Header>> zkHeaders;
+    std::map<std::string, std::unique_ptr<BinFileUtils::BinFile>> zKeys;
+
+    mpz_t altBbn128r;
+
     json proof;
     json pubData;
     std::string errString;
 
-    Circom_Circuit *circuit;
-    Circom_CalcWit *calcWit;
-
-    AltBn128::FrElement *wtns;
     bool canceled;
 
-    std::unique_ptr<BinFileUtils::BinFile> zkey;
-
-    std::unique_ptr<Groth16::Prover<AltBn128::Engine>> prover;
-
-    Circom_Circuit *loadCircuit(std::string const &datFileName);
     bool isCanceled();
     void calcFinished();
     void thread_calculateProve();
@@ -40,7 +38,7 @@ class FullProver {
 
 
 public: 
-    FullProver(std::string datFileName, std::string zkeyFileName);
+    FullProver(std::string zkeyFileNames[], int size);
     ~FullProver();
     void startProve(std::string input);
     void abort();

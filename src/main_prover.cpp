@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 
     if (argc != 5) {
         std::cerr << "Invalid number of parameters:\n";
-        std::cerr << "Usage: prove <circuit.zkey> <witness.wtns> <proof.json> <public.json>\n";
+        std::cerr << "Usage: prover <circuit.zkey> <witness.wtns> <proof.json> <public.json>\n";
         return -1;
     }
 
