@@ -2,7 +2,7 @@
 
 rapid snark is a zkSnark proof generation written in C++ and intel assembly. That generates proofs created in [circom](https://github.com/iden3/snarkjs) and [snarkjs](https://github.com/iden3/circom) very fast.
 
-## dependencies
+## Dependencies
 
 You should have installed gcc, libsodium, and gmp (development)
 
@@ -15,7 +15,7 @@ sudo apt-get install libsodium-dev
 sudo apt-get install nasm
 ````
 
-## compile prover
+## Compile prover in standalone mode
 
 ````sh
 npm install
@@ -23,6 +23,17 @@ git submodule init
 git submodule update
 npx task createFieldSources
 npx task buildProver
+````
+
+## Compile prover in server mode
+
+````sh
+npm install
+git submodule init
+git submodule update
+npx task createFieldSources
+npx task buildPistache
+npx task buildProverServer
 ````
 
 ## Building proof
@@ -37,9 +48,18 @@ snarkjs groth16 prove <circuit.zkey> <witness.wtns> <proof.json> <public.json>
 
 by this one
 ````sh
-./build/prove <circuit.zkey> <witness.wtns> <proof.json> <public.json>
+./build/prover <circuit.zkey> <witness.wtns> <proof.json> <public.json>
 ````
+## Launch prover in server mode
+````sh
+./build/proverServer  <port> <circuit1_zkey> <circuit2_zkey> ... <circuitN_zkey>
+````
+You have an example of the usage calling the server endpoints to generate the proof with Nodejs in `/tools/request.js`.
 
+To test a request you should pass an `input.json` as a parameter to the request call.
+````sh
+node tools/request.js ./input.json
+````
 ## Benchmark
 
 This prover uses intel assembly with ADX extensions and parallelizes as much as it can the proof generation. 
