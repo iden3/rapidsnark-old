@@ -464,11 +464,6 @@ namespace Fflonk
             LOG_TRACE("> ROUND 5");
             round5();
 
-            delete polynomials["R1"];
-            delete polynomials["R2"];
-            delete polynomials["ZT"];
-            delete polynomials["ZTS2"];
-
             proof->addEvaluationCommitment("inv", getMontgomeryBatchedInverse());
 
             // Prepare public inputs
@@ -481,6 +476,11 @@ namespace Fflonk
 
             LOG_TRACE("FFLONK PROVER FINISHED");
 
+            ss.str("");
+            ss << "Execution time: " << omp_get_wtime() - startTime << "\n";
+            LOG_TRACE(ss);
+
+            // Delete reserved memory
             for (auto const &x : mapBuffers)
             {
                 delete[] x.second;
@@ -489,15 +489,31 @@ namespace Fflonk
 
             delete fft;
             delete[] PTau;
-            delete transcript;
             delete[] bigBufferBuffers;
             delete[] bigBufferPolynomials;
             delete[] bigBufferEvaluations;
             delete[] buffInternalWitness;
 
-            ss.str("");
-            ss << "Execution time: " << omp_get_wtime() - startTime << "\n";
-            LOG_TRACE(ss);
+            for (auto const &x : roots)
+            {
+                delete[] x.second;
+            }
+            roots.clear();
+
+            // Delete created objects
+            delete transcript;
+            for (auto const &x : polynomials)
+            {
+                delete x.second;
+            }
+            polynomials.clear();
+
+            for (auto const &x : evaluations)
+            {
+                delete x.second;
+            }
+            evaluations.clear();
+
             return {proof->toJson(), publicSignals};
         }
         catch (const std::exception &e)
@@ -719,6 +735,8 @@ namespace Fflonk
         {
             throw std::runtime_error("C1 Polynomial is not well calculated");
         }
+
+        delete C1;
     }
 
     // ROUND 2
@@ -1049,6 +1067,8 @@ namespace Fflonk
         {
             throw std::runtime_error("C2 Polynomial is not well calculated");
         }
+
+        delete C2;
     }
 
     // ROUND 3
