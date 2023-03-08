@@ -23,7 +23,7 @@ function createFieldSources() {
     } else throw("Unsupported platform");
 }
 
-function buildPistche() {
+function buildPistache() {
     sh("git submodule init && git submodule update");
     sh("mkdir -p build", {cwd: "depends/pistache"});
     sh("cmake -G \"Unix Makefiles\" -DCMAKE_BUILD_TYPE=Release ..", {cwd: "depends/pistache/build"});
@@ -32,22 +32,19 @@ function buildPistche() {
 
 
 function buildProverServer() {
-    sh("cp " + process.argv[3] + " build/circuit.cpp", {cwd: ".", nopipe: true});
     sh("g++" +
         " -I."+
         " -I../src"+
         " -I../depends/pistache/include"+
         " -I../depends/json/single_include"+
         " -I../depends/ffiasm/c"+
-        " -I../depends/circom_runtime/c"+
         " ../src/main_proofserver.cpp"+
         " ../src/proverapi.cpp"+
         " ../src/fullprover.cpp"+
         " ../src/binfile_utils.cpp"+
+        " ../src/wtns_utils.cpp"+
         " ../src/zkey_utils.cpp"+
         " ../src/logger.cpp"+
-        " ../depends/circom_runtime/c/calcwit.cpp"+
-        " ../depends/circom_runtime/c/utils.cpp"+
         " ../depends/ffiasm/c/misc.cpp"+
         " ../depends/ffiasm/c/naf.cpp"+
         " ../depends/ffiasm/c/splitparstr.cpp"+
@@ -56,7 +53,6 @@ function buildProverServer() {
         " fq.o"+
         " fr.cpp"+
         " fr.o"+
-        " circuit.cpp"+
         " -L../depends/pistache/build/src -lpistache"+
         " -o proverServer"+
         " -fmax-errors=5 -pthread -std=c++17 -fopenmp -lgmp -lsodium -g -DSANITY_CHECK", {cwd: "build", nopipe: true}
@@ -92,7 +88,7 @@ function buildProver() {
 cli({
     cleanAll,
     createFieldSources,
-    buildPistche,
+    buildPistache,
     buildProverServer,
     buildProver
 });

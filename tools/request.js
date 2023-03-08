@@ -2,9 +2,10 @@ const fs = require("fs");
 const fetch = require('node-fetch');
 
 const input = fs.readFileSync(process.argv[2], "utf8");
+const circuit = process.argv[3];
 
 async function callInput() {
-    const rawResponse = await fetch('http://localhost:9080/input', {
+    const rawResponse = await fetch(`http://localhost:9080/input/${circuit}`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
