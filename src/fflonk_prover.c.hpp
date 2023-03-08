@@ -63,8 +63,6 @@ namespace Fflonk
             fft = new FFT<typename Engine::Fr>(zkey->domainSize * 16);
             zkeyPower = fft->log2(zkey->domainSize);
 
-            mulZ = new MulZ<Engine>(E, fft);
-
             if(NULL != wtnsHeader) {
                 if (mpz_cmp(zkey->rPrime, wtnsHeader->prime) != 0)
                 {
@@ -489,7 +487,6 @@ namespace Fflonk
             }
             mapBuffers.clear();
 
-            delete mulZ;
             delete fft;
             delete[] PTau;
             delete transcript;
