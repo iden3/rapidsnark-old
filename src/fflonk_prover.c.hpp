@@ -135,7 +135,7 @@ namespace Fflonk
             buffers["montgomery"] = &bigBufferBuffers[accLength];
 
             // Reserve big buffer memory for polynomials to avoid dynamic reservation
-            u_int64_t polynomialsLength = zkey->domainSize * 2 * 3; // A, B, C
+            u_int64_t polynomialsLength = zkey->domainSize * 3;     // A, B, C
             polynomialsLength += zkey->domainSize * 3;              // Sigma1, Sigma2 & Sigma3
             polynomialsLength += zkey->domainSize * 5;              // QL, QR, QM, QO & QC
             polynomialsLength += zkey->domainSize * 8;              // C0
