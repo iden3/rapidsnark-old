@@ -68,6 +68,14 @@ namespace Fflonk
                 {
                     throw std::invalid_argument("Curve of the witness does not match the curve of the proving key");
                 }
+
+                if (wtnsHeader->nVars != zkey->nVars - zkey->nAdditions)
+                {
+                    std::ostringstream ss;
+                    ss << "Invalid witness length. Circuit: " << zkey->nVars << ", witness: " << wtnsHeader->nVars << ", "
+                    << zkey->nAdditions;
+                    throw std::invalid_argument(ss.str());
+                }
             }
 
             mpz_t altBbn128r;
@@ -77,16 +85,6 @@ namespace Fflonk
             if (mpz_cmp(zkey->rPrime, altBbn128r) != 0)
             {
                 throw std::invalid_argument("zkey curve not supported");
-            }
-
-            if(NULL != wtnsHeader) {
-                if (wtnsHeader->nVars != zkey->nVars - zkey->nAdditions)
-                {
-                    std::ostringstream ss;
-                    ss << "Invalid witness length. Circuit: " << zkey->nVars << ", witness: " << wtnsHeader->nVars << ", "
-                    << zkey->nAdditions;
-                    throw std::invalid_argument(ss.str());
-                }
             }
 
             sDomain = zkey->domainSize * sizeof(FrElement);
