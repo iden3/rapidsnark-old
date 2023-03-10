@@ -35,14 +35,12 @@ namespace Fflonk {
         std::string curveName;
         size_t sDomain;
 
+        FrElement *precomputedBigBuffer;
+        FrElement *nonPrecomputedBigBuffer;
         G1PointAffine *PTau;
 
         FrElement *buffWitness;
         FrElement *buffInternalWitness;
-
-        FrElement *bigBufferBuffers;
-        FrElement *bigBufferPolynomials;
-        FrElement *bigBufferEvaluations;
 
         std::map<std::string, FrElement *> polPtr;
         std::map<std::string, FrElement *> evalPtr;

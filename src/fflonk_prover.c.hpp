@@ -60,7 +60,7 @@ namespace Fflonk
 
             LOG_TRACE("> Starting fft");
 
-            fft = new FFT<typename Engine::Fr>(zkey->domainSize * 16);
+            fft = new FFT<typename Engine::Fr>(zkey->domainSize * 4);
             zkeyPower = fft->log2(zkey->domainSize);
 
             if(NULL != wtnsHeader) {
@@ -91,148 +91,102 @@ namespace Fflonk
 
             sDomain = zkey->domainSize * sizeof(FrElement);
 
+            ////////////////////////////////////////////////////
+            // PRECOMPUTED BIG BUFFER
+            ////////////////////////////////////////////////////
+            // Precomputed 1 > polynomials buffer
+            u_int64_t lengthPrecomputedBigBuffer = 0;
+            lengthPrecomputedBigBuffer += zkey->domainSize * 1 * 8; // Polynomials QL, QR, QM, QO, QC, Sigma1, Sigma2 & Sigma3
+            lengthPrecomputedBigBuffer += zkey->domainSize * 8 * 1; // Polynomial  C0
+            // Precomputed 2 > evaluations buffer
+             //TODO check if we need a bigger buffer depending on the lagrange polynomials we need depending on the public inputs
+            lengthPrecomputedBigBuffer += zkey->domainSize * 4 * 9; // Evaluations QL, QR, QM, QO, QC, Sigma1, Sigma2, Sigma3 & Lagrange1
+            // Precomputed 3 > ptau buffer
+            lengthPrecomputedBigBuffer += zkey->domainSize * 9 * sizeof(G1PointAffine) / sizeof(FrElement); // PTau buffer
 
-            // Reserve big buffer memory for buffers to avoid dynamic reservation
-            u_int64_t buffersLength = zkey->domainSize * 3; // A, B, C
-            buffersLength += zkey->domainSize * 4;          // T0
-            buffersLength += zkey->domainSize * 2 * 2;      // T1 & T1z
-            buffersLength += zkey->domainSize * 4 * 2;      // T2 & T2z
-            buffersLength += zkey->domainSize;              // Z
-            buffersLength += zkey->domainSize * 4;          // num, den, numArr, denArr
-            buffersLength += zkey->domainSize * 16;         // montgomery
+            precomputedBigBuffer = new FrElement[lengthPrecomputedBigBuffer];
 
-            bigBufferBuffers = new FrElement[buffersLength];
+            polPtr["Sigma1"] = &precomputedBigBuffer[0];
+            polPtr["Sigma2"] = polPtr["Sigma1"] + zkey->domainSize;
+            polPtr["Sigma3"] = polPtr["Sigma2"] + zkey->domainSize;
+            polPtr["QL"]     = polPtr["Sigma3"] + zkey->domainSize;
+            polPtr["QR"]     = polPtr["QL"] + zkey->domainSize;
+            polPtr["QM"]     = polPtr["QR"] + zkey->domainSize;
+            polPtr["QO"]     = polPtr["QM"] + zkey->domainSize;
+            polPtr["QC"]     = polPtr["QO"] + zkey->domainSize;
+            polPtr["C0"]     = polPtr["QC"] + zkey->domainSize;
+
+            evalPtr["Sigma1"] = polPtr["C0"] + zkey->domainSize * 8;
+            evalPtr["Sigma2"] = evalPtr["Sigma1"] + zkey->domainSize * 4;
+            evalPtr["Sigma3"] = evalPtr["Sigma2"] + zkey->domainSize * 4;
+            evalPtr["QL"]     = evalPtr["Sigma3"] + zkey->domainSize * 4;
+            evalPtr["QR"]     = evalPtr["QL"] + zkey->domainSize * 4;
+            evalPtr["QM"]     = evalPtr["QR"] + zkey->domainSize * 4;
+            evalPtr["QO"]     = evalPtr["QM"] + zkey->domainSize * 4;
+            evalPtr["QC"]     = evalPtr["QO"] + zkey->domainSize * 4;
+            evalPtr["lagrange1"] = evalPtr["QC"] + zkey->domainSize * 4;
+
+            PTau = (G1PointAffine *)(evalPtr["lagrange1"] + zkey->domainSize * 4);
+
+            ////////////////////////////////////////////////////
+            // NON-PRECOMPUTED BIG BUFFER
+            ////////////////////////////////////////////////////
+            // Non-precomputed 1 > polynomials buffer
+            u_int64_t lengthBigBuffer = 0;
+            lengthBigBuffer += zkey->domainSize * 16 * 1; // Polynomial L (A, B & C will (re)use this buffer)
+            lengthBigBuffer += zkey->domainSize * 8  * 1; // Polynomial C1
+            lengthBigBuffer += zkey->domainSize * 16 * 1; // Polynomial C2
+            lengthBigBuffer += zkey->domainSize * 16 * 1; // Polynomial F
+            lengthBigBuffer += zkey->domainSize * 16 * 1; // Polynomial tmp (Z, T0, T1, T1z, T2 & T2z will (re)use this buffer)
+            // Non-precomputed 2 > evaluations buffer
+            lengthBigBuffer += zkey->domainSize * 4  * 3; // Evaluations A, B & C
+            lengthBigBuffer += zkey->domainSize * 4  * 1; // Evaluations Z
+            // Non-precomputed 3 > buffers buffer
+            u_int64_t buffersLength = 0;
+            buffersLength   += zkey->domainSize * 4  * 3; // Evaluations A, B & C
+            buffersLength   += zkey->domainSize * 16 * 1; // Evaluations tmp (Z, numArr, denArr, T0, T1, T1z, T2 & T2z will (re)use this buffer)
+            lengthBigBuffer += buffersLength;
+
+            nonPrecomputedBigBuffer = new FrElement[lengthBigBuffer];
+
+            polPtr["L"] = &nonPrecomputedBigBuffer[0];
+            polPtr["C1"]  = polPtr["L"]  + zkey->domainSize * 16;
+            polPtr["C2"]  = polPtr["C1"] + zkey->domainSize * 8;
+            polPtr["F"]   = polPtr["C2"] + zkey->domainSize * 16;
+            polPtr["tmp"] = polPtr["F"]  + zkey->domainSize * 16;
+            // Reuses
+            polPtr["A"]   = polPtr["L"];
+            polPtr["B"]   = polPtr["A"]  + zkey->domainSize;
+            polPtr["C"]   = polPtr["B"]  + zkey->domainSize;
+            polPtr["Z"]   = polPtr["tmp"];
+            polPtr["T0"]  = polPtr["Z"]  + zkey->domainSize * 2;
+            polPtr["T1"]  = polPtr["T0"] + zkey->domainSize * 4;
+            polPtr["T1z"] = polPtr["T1"] + zkey->domainSize * 2;
+            polPtr["T2"]  = polPtr["T1"] + zkey->domainSize * 2;
+            polPtr["T2z"] = polPtr["T2"] + zkey->domainSize * 4;
+
+            evalPtr["A"] = polPtr["F"];
+            evalPtr["B"] = evalPtr["A"]  + zkey->domainSize * 4;
+            evalPtr["C"] = evalPtr["B"]  + zkey->domainSize * 4;
+            evalPtr["Z"] = evalPtr["C"]  + zkey->domainSize * 4;
+
+            buffers["A"]   = polPtr["tmp"]  + zkey->domainSize * 16;
+            buffers["B"]   = buffers["A"]  + zkey->domainSize;
+            buffers["C"]   = buffers["B"]  + zkey->domainSize;
+            buffers["tmp"] = buffers["C"]  + zkey->domainSize;
+
+            // Reuses
+            buffers["Z"]      = buffers["tmp"];
+            buffers["numArr"] = buffers["tmp"];
+            buffers["denArr"] = buffers["numArr"] + zkey->domainSize;
+            buffers["T0"]     = buffers["tmp"];
+            buffers["T1"]     = buffers["tmp"];
+            buffers["T1z"]    = buffers["tmp"] + zkey->domainSize * 2;
+            buffers["T2"]     = buffers["tmp"];
+            buffers["T2z"]    = buffers["tmp"] + zkey->domainSize * 4;
+
             int nThreads = omp_get_max_threads() / 2;
-            ThreadUtils::parset(bigBufferBuffers, 0, buffersLength * sizeof(FrElement), nThreads);
-
-            u_int64_t accLength = 0;
-            buffers["A"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize;
-            buffers["B"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize;
-            buffers["C"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize;
-            buffers["T0"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize * 4;
-            buffers["T1"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize * 2;
-            buffers["T1z"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize * 2;
-            buffers["T2"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize * 4;
-            buffers["T2z"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize * 4;
-            buffers["Z"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize;
-            buffers["num"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize;
-            buffers["den"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize;
-            buffers["numArr"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize;
-            buffers["denArr"] = &bigBufferBuffers[accLength];
-            accLength += zkey->domainSize;
-            buffers["montgomery"] = &bigBufferBuffers[accLength];
-
-            // Reserve big buffer memory for polynomials to avoid dynamic reservation
-            u_int64_t polynomialsLength = zkey->domainSize * 3;     // A, B, C
-            polynomialsLength += zkey->domainSize * 3;              // Sigma1, Sigma2 & Sigma3
-            polynomialsLength += zkey->domainSize * 5;              // QL, QR, QM, QO & QC
-            polynomialsLength += zkey->domainSize * 8;              // C0
-            polynomialsLength += zkey->domainSize * 16 * 2;         // C1 & C2
-            polynomialsLength += zkey->domainSize * 4;              // T0
-            polynomialsLength += zkey->domainSize * 2 * 2;          // T1 & T1z
-            polynomialsLength += zkey->domainSize * 4 * 2;          // T2 & T2z
-            polynomialsLength += zkey->domainSize * 2;              // Z
-            polynomialsLength += zkey->domainSize * 16;             // F
-            polynomialsLength += zkey->domainSize * 16;             // L
-            polynomialsLength += zkey->domainSize * 16;             // remainder
-
-            bigBufferPolynomials = new FrElement[polynomialsLength];
-
-            accLength = 0;
-            polPtr["A"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 2;
-            polPtr["B"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 2;
-            polPtr["C"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 2;
-            polPtr["Sigma1"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize;
-            polPtr["Sigma2"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize;
-            polPtr["Sigma3"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize;
-            polPtr["QL"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize;
-            polPtr["QR"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize;
-            polPtr["QM"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize;
-            polPtr["QO"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize;
-            polPtr["QC"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize;
-            polPtr["C0"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 8;
-            polPtr["C1"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 16;
-            polPtr["C2"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 16;
-            polPtr["T0"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 4;
-            polPtr["T1"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 2;
-            polPtr["T1z"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 2;
-            polPtr["T2"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 4;
-            polPtr["T2z"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 4;
-            polPtr["Z"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 2;
-            polPtr["F"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 16;
-            polPtr["L"] = &bigBufferPolynomials[accLength];
-            accLength += zkey->domainSize * 16;
-            polPtr["remainder"] = &bigBufferPolynomials[accLength];
-
-            // Reserve big buffer memory for evaluations to avoid dynamic reservation
-            u_int64_t evaluationsLength = zkey->domainSize * 4 * 3; // A, B, C
-            evaluationsLength += zkey->domainSize * 4 * 3;          // Sigma1, Sigma2 & Sigma3
-            evaluationsLength += zkey->domainSize * 4 * 5;          // QL, QR, QM, QO & QC
-            evaluationsLength += zkey->domainSize * 4;              // lagrange1
-            evaluationsLength += zkey->domainSize * 4;              // Z
-
-            bigBufferEvaluations = new FrElement[evaluationsLength];
-
-            accLength = 0;
-            evalPtr["A"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["B"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["C"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["Sigma1"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["Sigma2"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["Sigma3"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["QL"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["QR"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["QM"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["QO"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["QC"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["Z"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
-            evalPtr["lagrange1"] = &bigBufferEvaluations[accLength];
-            accLength += zkey->domainSize * 4;
+            ThreadUtils::parset(buffers["A"], 0, buffersLength * sizeof(FrElement), nThreads);
 
             std::ostringstream ss;
             LOG_TRACE("----------------------------");
@@ -394,16 +348,14 @@ namespace Fflonk
                                 sDomain * 4, nThreads);
 
             LOG_TRACE("... Loading Powers of Tau evaluations");
-            PTau = new G1PointAffine[zkey->domainSize * 16];
-            ThreadUtils::parset(PTau, 0, sizeof(G1PointAffine) * zkey->domainSize * 16, nThreads);
 
-            // domainSize * 9 + 18 = SRS length in the zkey saved in setup process.
+            ThreadUtils::parset(PTau, 0, sizeof(G1PointAffine) * zkey->domainSize * 9, nThreads);
+
+            // domainSize * 9 = SRS length in the zkey saved in setup process.
             // it corresponds to the maximum SRS length needed, specifically to commit C2
-            // notice that the reserved buffers size is zkey->domainSize * 16 * sG1 because a power of two buffer size is needed
-            // the remaining buffer not filled from SRS are set to 0
             ThreadUtils::parcpy(this->PTau,
                                 (G1PointAffine *)fdZkey->getSectionData(Zkey::ZKEY_FF_PTAU_SECTION),
-                                (zkey->domainSize * 9 + 18) * sizeof(G1PointAffine), nThreads);
+                                (zkey->domainSize * 9) * sizeof(G1PointAffine), nThreads);
 
             transcript = new Keccak256Transcript<Engine>(E);
 
@@ -488,10 +440,7 @@ namespace Fflonk
             mapBuffers.clear();
 
             delete fft;
-            delete[] PTau;
-            delete[] bigBufferBuffers;
-            delete[] bigBufferPolynomials;
-            delete[] bigBufferEvaluations;
+
             delete[] buffInternalWitness;
 
             for (auto const &x : roots)
@@ -639,7 +588,7 @@ namespace Fflonk
         std::ostringstream ss;
         ss << "··· Computing " << polName << " ifft";
         LOG_TRACE(ss);
-        polynomials[polName] = Polynomial<Engine>::fromEvaluations(E, fft, buffers[polName], polPtr[polName], zkey->domainSize, 2);
+        polynomials[polName] = Polynomial<Engine>::fromEvaluations(E, fft, buffers[polName], polPtr[polName], zkey->domainSize);
 
         // Compute the extended evaluations of the wire polynomials
         ss.str("");
@@ -798,15 +747,13 @@ namespace Fflonk
     template <typename Engine>
     void FflonkProver<Engine>::computeZ()
     {
-        FrElement *num = buffers["num"];
-        FrElement *den = buffers["den"];
         FrElement *numArr = buffers["numArr"];
         FrElement *denArr = buffers["denArr"];
 
         LOG_TRACE("··· Computing Z evaluations");
 
         std::ostringstream ss;
-#pragma omp parallel for
+        #pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize; i++)
         {
             //            if ((0 != i) && (i % 100000 == 0)) {
@@ -833,7 +780,7 @@ namespace Fflonk
             num3 = E.fr.add(num3, E.fr.mul(*((FrElement *)zkey->k2), betaw));
             num3 = E.fr.add(num3, challenges["gamma"]);
 
-            num[i] = E.fr.mul(num1, E.fr.mul(num2, num3));
+            numArr[i] = E.fr.mul(num1, E.fr.mul(num2, num3));
 
             // denArr := (a + beta·sigma1 + gamma)(b + beta·sigma2 + gamma)(c + beta·sigma3 + gamma)
             FrElement den1 = buffers["A"][i];
@@ -848,28 +795,34 @@ namespace Fflonk
             den3 = E.fr.add(den3, E.fr.mul(challenges["beta"], evaluations["Sigma3"]->eval[i * 4]));
             den3 = E.fr.add(den3, challenges["gamma"]);
 
-            den[i] = E.fr.mul(den1, E.fr.mul(den2, den3));
+            denArr[i] = E.fr.mul(den1, E.fr.mul(den2, den3));
         }
 
-        // Set the first values to 1
-        numArr[0] = E.fr.one();
-        denArr[0] = E.fr.one();
+        FrElement numPrev = numArr[0];
+        FrElement denPrev = denArr[0];
+        FrElement numCur, denCur;
 
-        for (u_int64_t i = 0; i < zkey->domainSize; i++)
+        for (u_int64_t i = 0; i < zkey->domainSize - 1; i++)
         {
-            // Multiply current num value with the previous one saved in numArr
-            numArr[(i + 1) % zkey->domainSize] = E.fr.mul(numArr[i], num[i]);
+            numCur = numArr[i + 1];
+            denCur = denArr[i + 1];
 
-            // Multiply current den value with the previous one saved in denArr
-            denArr[(i + 1) % zkey->domainSize] = E.fr.mul(denArr[i], den[i]);
+            numArr[i + 1] = numPrev;
+            denArr[i + 1] = denPrev;
+
+            numPrev = E.fr.mul(numPrev, numCur);
+            denPrev = E.fr.mul(denPrev, denCur);
         }
+
+        numArr[0] = numPrev;
+        denArr[0] = denPrev;
 
         // Compute the inverse of denArr to compute in the next command the
         // division numArr/denArr by multiplying num · 1/denArr
         batchInverse(denArr, zkey->domainSize);
 
         // Multiply numArr · denArr where denArr was inverted in the previous command
-#pragma omp parallel for
+        #pragma omp parallel for
         for (u_int32_t i = 0; i < zkey->domainSize; i++)
         {
             buffers["Z"][i] = E.fr.mul(numArr[i], denArr[i]);
@@ -1308,14 +1261,14 @@ namespace Fflonk
         polynomials["F"]->divByZerofier(3, challenges["xi"]);
         polynomials["F"]->divByZerofier(3, challenges["xiw"]);
 
-        auto fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C1"], polPtr["remainder"]);
+        auto fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C1"], polPtr["tmp"]);
         fTmp->sub(*polynomials["R1"]);
         fTmp->mulScalar(challenges["alpha"]);
         fTmp->divByZerofier(4, challenges["xi"]);
 
         polynomials["F"]->add(*fTmp);
 
-        fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C0"], polPtr["remainder"]);
+        fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C0"], polPtr["tmp"]);
         fTmp->sub(*polynomials["R0"]);
         fTmp->divByZerofier(8, challenges["xi"]);
 
@@ -1427,13 +1380,13 @@ namespace Fflonk
         polynomials["L"]->subScalar(evalR2Y);
         polynomials["L"]->mulScalar(preL2);
 
-        auto fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C1"], polPtr["remainder"]);
+        auto fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C1"], polPtr["tmp"]);
         fTmp->subScalar(evalR1Y);
         fTmp->mulScalar(preL1);
 
         polynomials["L"]->add(*fTmp);
 
-        fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C0"], polPtr["remainder"]);
+        fTmp = Polynomial<Engine>::fromPolynomial(E, *polynomials["C0"], polPtr["tmp"]);
         fTmp->subScalar(evalR0Y);
         fTmp->mulScalar(preL0);
 
@@ -1604,7 +1557,7 @@ namespace Fflonk
     {
         const u_int64_t length = polynomial->getLength();
 
-        FrElement *result = buffers["montgomery"];
+        FrElement *result = buffers["tmp"];
         int nThreads = omp_get_max_threads() / 2;
         ThreadUtils::parset(result, 0, length * sizeof(FrElement), nThreads);
 
