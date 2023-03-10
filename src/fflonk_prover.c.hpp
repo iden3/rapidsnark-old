@@ -99,8 +99,8 @@ namespace Fflonk
             lengthPrecomputedBigBuffer += zkey->domainSize * 1 * 8; // Polynomials QL, QR, QM, QO, QC, Sigma1, Sigma2 & Sigma3
             lengthPrecomputedBigBuffer += zkey->domainSize * 8 * 1; // Polynomial  C0
             // Precomputed 2 > evaluations buffer
-             //TODO check if we need a bigger buffer depending on the lagrange polynomials we need depending on the public inputs
-            lengthPrecomputedBigBuffer += zkey->domainSize * 4 * 9; // Evaluations QL, QR, QM, QO, QC, Sigma1, Sigma2, Sigma3 & Lagrange1
+            lengthPrecomputedBigBuffer += zkey->domainSize * 4 * 8; // Evaluations QL, QR, QM, QO, QC, Sigma1, Sigma2, Sigma3
+            lengthPrecomputedBigBuffer += zkey->domainSize * 4 * zkey->nPublic; // Evaluations Lagrange1
             // Precomputed 3 > ptau buffer
             lengthPrecomputedBigBuffer += zkey->domainSize * 9 * sizeof(G1PointAffine) / sizeof(FrElement); // PTau buffer
 
@@ -126,7 +126,7 @@ namespace Fflonk
             evalPtr["QC"]     = evalPtr["QO"] + zkey->domainSize * 4;
             evalPtr["lagrange1"] = evalPtr["QC"] + zkey->domainSize * 4;
 
-            PTau = (G1PointAffine *)(evalPtr["lagrange1"] + zkey->domainSize * 4);
+            PTau = (G1PointAffine *)(evalPtr["lagrange1"] + zkey->domainSize * 4 * zkey->nPublic);
 
             ////////////////////////////////////////////////////
             // NON-PRECOMPUTED BIG BUFFER
@@ -342,11 +342,12 @@ namespace Fflonk
 
             // Read Lagrange polynomials & evaluations from zkey file
             LOG_TRACE("... Loading Lagrange evaluations");
-            evaluations["lagrange1"] = new Evaluations<Engine>(E, evalPtr["lagrange1"], zkey->domainSize * 4);
-            ThreadUtils::parcpy(evaluations["lagrange1"]->eval,
-                                (FrElement *)fdZkey->getSectionData(Zkey::ZKEY_FF_LAGRANGE_SECTION) + zkey->domainSize,
-                                sDomain * 4, nThreads);
-
+            evaluations["lagrange1"] = new Evaluations<Engine>(E, evalPtr["lagrange1"], zkey->domainSize * 4 * zkey->nPublic);
+            for(uint64_t i = 0 ; i < zkey->nPublic ; i++) {
+                ThreadUtils::parcpy(evaluations["lagrange1"]->eval + zkey->domainSize * 4 * i,
+                                    (FrElement *)fdZkey->getSectionData(Zkey::ZKEY_FF_LAGRANGE_SECTION) + zkey->domainSize + zkey->domainSize * 5 * i,
+                                    sDomain * 4, nThreads);
+            }
             LOG_TRACE("... Loading Powers of Tau evaluations");
 
             ThreadUtils::parset(PTau, 0, sizeof(G1PointAffine) * zkey->domainSize * 9, nThreads);
@@ -432,35 +433,28 @@ namespace Fflonk
             ss << "Execution time: " << omp_get_wtime() - startTime << "\n";
             LOG_TRACE(ss);
 
-            // Delete reserved memory
-            for (auto const &x : mapBuffers)
-            {
-                delete[] x.second;
-            }
-            mapBuffers.clear();
+            // DELETE RESERVED MEMORY
+            // Delete memory of precomputed data if necessary
+            delete[] precomputedBigBuffer;
 
-            delete fft;
-
+            // Delete memory of circuit-dependent data if necessary
+            delete[] nonPrecomputedBigBuffer;
             delete[] buffInternalWitness;
 
-            for (auto const &x : roots)
-            {
-                delete[] x.second;
-            }
+            for (auto const &x : mapBuffers) delete[] x.second;
+            mapBuffers.clear();
+
+            for (auto const &x : roots) delete[] x.second;
             roots.clear();
 
             // Delete created objects
+            delete fft;
             delete transcript;
-            for (auto const &x : polynomials)
-            {
-                delete x.second;
-            }
+
+            for (auto const &x : polynomials) delete x.second;
             polynomials.clear();
 
-            for (auto const &x : evaluations)
-            {
-                delete x.second;
-            }
+            for (auto const &x : evaluations) delete x.second;
             evaluations.clear();
 
             return {proof->toJson(), publicSignals};
