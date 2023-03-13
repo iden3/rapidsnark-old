@@ -52,9 +52,10 @@ by this one
 ````
 ## Launch prover in server mode
 ````sh
-./build/proverServer  <port> <circuit1_zkey> <circuit2_zkey> ... <circuitN_zkey>
+cd build
+./proverServer  <port> <circuit1_zkey> <circuit2_zkey> ... <circuitN_zkey>
 ````
-For every `circuit.circom` you have to generate with circom with --c option the `circuit_cpp` and after compilation you have to copy the executable into the `build` folder so the server can generate the witness and then the proof based on this witness.
+For every `circuit.circom` you have to generate with circom with --c option the `circuit_cpp` and after compilation you have to copy the executable and the `circuit.dat` into the `build` folder so the server can generate the witness and then the proof based on this witness.
 You have an example of the usage calling the server endpoints to generate the proof with Nodejs in `/tools/request.js`.
 
 To test a request you should pass an `input.json` as a parameter to the request call.

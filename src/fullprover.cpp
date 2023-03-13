@@ -109,12 +109,12 @@ void FullProver::thread_calculateProve() {
         json j = json::parse(executingInput);
         std::string circuit = executingCircuit;
         
-        std::ofstream file("./build/input_"+ circuit +".json");
+        std::ofstream file("./input_"+ circuit +".json");
         file << j;
         file.close();
 
-        std::string witnessFile("./build/" + circuit + ".wtns");
-        std::string command("./build/" + circuit + " ./build/input_"+ circuit +".json " + witnessFile);
+        std::string witnessFile("./" + circuit + ".wtns");
+        std::string command("./" + circuit + " ./input_"+ circuit +".json " + witnessFile);
         LOG_TRACE(command);
         std::array<char, 128> buffer;
         std::string result;
