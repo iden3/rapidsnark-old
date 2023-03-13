@@ -89,10 +89,10 @@ int main(int argc, char **argv) {
         auto wtns = BinFileUtils::openExisting(wtnsFilename, "wtns", 2);
 
         if (Zkey::FFLONK_PROTOCOL_ID == protocolId) {
-
             auto prover = new Fflonk::FflonkProver<AltBn128::Engine>(AltBn128::Engine::engine);
 
             auto [proofJson, publicSignalsJson] = prover->prove(zkey.get(), wtns.get());
+            auto [proofJson2, publicSignalsJson2] = prover->prove(wtns.get());
 
             std::ofstream file;
             file.open(proofFilename);
