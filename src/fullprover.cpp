@@ -73,6 +73,7 @@ void FullProver::startProve(std::string input, std::string circuit) {
     pendingInput = input;
     pendingCircuit = circuit;
     if (status == busy) {
+        LOG_DEBUG("busy -> Abort");
         abort();
     }
     checkPending();
@@ -102,7 +103,7 @@ void FullProver::checkPending() {
 
 void FullProver::thread_calculateProve() {
     LOG_TRACE("FullProver::thread_calculateProve start");
-    
+
     try {
         LOG_TRACE(executingInput);
         // Generate witness
@@ -186,6 +187,7 @@ void FullProver::calcFinished() {
     }
     canceled = false;
     executingInput = "";
+    executingCircuit = "";
     checkPending();
     LOG_TRACE("FullProver::calcFinished end");
 }
@@ -202,10 +204,9 @@ bool FullProver::isCanceled() {
 }
 
 void FullProver::abort() {
-    std::lock_guard<std::mutex> guard(mtx);
     LOG_TRACE("FullProver::abort start");
     if (status!= busy) {
-        LOG_TRACE("FullProver::abort end -> not usy");
+        LOG_TRACE("FullProver::abort end -> not busy");
         return;
     }
     canceled = true;
