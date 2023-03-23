@@ -74,6 +74,8 @@ int main(int argc, char **argv) {
     mpz_init(altBbn128r);
     mpz_set_str(altBbn128r, "21888242871839275222246405745257275088548364400416034343698204186575808495617", 10);
 
+    //using FrElement = typename AltBn128::Engine::FrElement;
+
     try {
         std::string zkeyFilename = argv[1];
         std::string wtnsFilename = argv[2];
@@ -92,7 +94,6 @@ int main(int argc, char **argv) {
             auto prover = new Fflonk::FflonkProver<AltBn128::Engine>(AltBn128::Engine::engine);
 
             auto [proofJson, publicSignalsJson] = prover->prove(zkey.get(), wtns.get());
-            auto [proofJson2, publicSignalsJson2] = prover->prove(wtns.get());
 
             std::ofstream file;
             file.open(proofFilename);
