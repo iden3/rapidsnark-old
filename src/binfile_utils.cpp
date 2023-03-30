@@ -9,6 +9,16 @@
 
 #include "binfile_utils.hpp"
 
+#if __linux__
+#define _MAP_POPULATE_AVAILABLE
+#endif
+
+#ifdef _MAP_POPULATE_AVAILABLE
+#define MMAP_FLAGS (MAP_PRIVATE | MAP_POPULATE)
+#else
+#define MMAP_FLAGS (MAP_PRIVATE)
+#endif
+
 namespace BinFileUtils {
 
 BinFile::BinFile(std::string fileName, std::string _type, uint32_t maxVersion) {
@@ -25,7 +35,7 @@ BinFile::BinFile(std::string fileName, std::string _type, uint32_t maxVersion) {
         throw std::system_error(errno, std::generic_category(), "fstat");
 
     size = sb.st_size;
-    void *addrmm = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
+    void *addrmm = mmap(NULL, sb.st_size, PROT_READ, MMAP_FLAGS, fd, 0);
     addr = malloc(sb.st_size);
     memcpy(addr, addrmm, sb.st_size);
     munmap(addrmm, sb.st_size);
