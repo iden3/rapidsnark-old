@@ -53,7 +53,7 @@ Polynomial<Engine> *CPolynomial<Engine>::getPolynomial(FrElement *reservedBuffer
     for (u_int64_t i = 0; i < maxDegree + 1; i++) {
         for (int j = 0; j < n; j++) {
             if (polynomials[j] != NULL) {
-                if (i <= degrees[j]) polynomial->coef[i * n + j] = polynomials[j]->coef[i];
+                if (degrees[j] >= 0 && i <= degrees[j]) polynomial->coef[i * n + j] = polynomials[j]->coef[i];
             }
         }
     }
