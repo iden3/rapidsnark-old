@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.ejs": "html",
         "array": "cpp",
         "atomic": "cpp",
         "bit": "cpp",
@@ -71,6 +72,17 @@
         "csignal": "cpp",
         "set": "cpp",
         "valarray": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "any": "cpp",
+        "strstream": "cpp",
+        "codecvt": "cpp",
+        "compare": "cpp",
+        "complex": "cpp",
+        "concepts": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp",
+        "cfenv": "cpp",
+        "typeindex": "cpp"
     }
 }

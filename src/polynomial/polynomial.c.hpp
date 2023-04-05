@@ -690,6 +690,12 @@ Polynomial<Engine>::computeLagrangePolynomial(u_int64_t i, FrElement xArr[], FrE
     Engine &E = Engine::engine;
     Polynomial<Engine> *polynomial = NULL;
 
+    if(i == 0 && length == 1) {
+        polynomial = new Polynomial<Engine>(E, length);
+        polynomial->coef[0] = E.fr.one();
+        polynomial->fixDegree();
+    }
+
     for (u_int64_t j = 0; j < length; j++) {
         if (j == i) continue;
 
