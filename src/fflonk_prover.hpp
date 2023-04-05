@@ -116,13 +116,11 @@ namespace Fflonk {
 
         void computeT0();
 
+        void computef1();
+
         void computef2();
 
         void computef3();
-
-        void computef4();
-
-        void computef5();
 
         //ROUND 2 functions
         void computeZ();
@@ -139,10 +137,6 @@ namespace Fflonk {
         void computeR2();
 
         void computeR3();
-
-        void computeR4();
-
-        void computeR5();
 
         void computeF();
 
@@ -163,11 +157,11 @@ namespace Fflonk {
 
         void computeLiS0();
 
+        void computeLiS1();
+
+        void computeLiS2();
+
         void computeLiS3();
-
-        void computeLiS4();
-
-        void computeLiS5();
 
         G1Point multiExponentiation(Polynomial<Engine> *polynomial);
 

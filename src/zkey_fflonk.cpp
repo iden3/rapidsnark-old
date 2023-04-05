@@ -40,13 +40,12 @@ namespace Zkey {
         fflonkZkeyHeader->w1_1d1 = f->read(fflonkZkeyHeader->n8r);
         fflonkZkeyHeader->w2 = f->read(fflonkZkeyHeader->n8r);
         fflonkZkeyHeader->w2_1d2 = f->read(fflonkZkeyHeader->n8r);
-        fflonkZkeyHeader->w3 = f->read(fflonkZkeyHeader->n8r);
         fflonkZkeyHeader->w4 = f->read(fflonkZkeyHeader->n8r);
+        fflonkZkeyHeader->w8 = f->read(fflonkZkeyHeader->n8r);
 
         fflonkZkeyHeader->X2 = f->read(fflonkZkeyHeader->n8q * 4);
 
         fflonkZkeyHeader->f0 = f->read(fflonkZkeyHeader->n8q * 2);
-        fflonkZkeyHeader->f1 = f->read(fflonkZkeyHeader->n8q * 2);
 
         f->endReadSection();
 
