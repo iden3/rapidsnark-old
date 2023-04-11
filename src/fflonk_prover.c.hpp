@@ -1149,19 +1149,13 @@ namespace Fflonk
     void FflonkProver<Engine>::computef2()
     {
         // f2(X) := T2(X) 
-        CPolynomial<Engine> *f2 = new CPolynomial(E, 1);
-
-        f2->addPolynomial(0, polynomials["T2"]);
-
-        polynomials["f2"] = f2->getPolynomial(polPtr["f2"]);
+        polynomials["f2"] = Polynomial<Engine>::fromPolynomial(E, *polynomials["T2"], polPtr["f2"]);
 
         // Check degree
         if (polynomials["f2"]->getDegree() >= 3 * zkey->domainSize)
         {
             throw std::runtime_error("f2 Polynomial is not well calculated");
         }
-
-        delete f2;  
     }
 
     template <typename Engine>
@@ -1585,9 +1579,9 @@ namespace Fflonk
         mulL3 = E.fr.mul(mulL3, E.fr.sub(challenges["y"], roots["S3h5"][0]));
         mulL3 = E.fr.mul(mulL3, E.fr.sub(challenges["y"], roots["S3h5"][1]));
 
-        toInverse["denH1"] = mulL1;
-        toInverse["denH2"] = mulL2;
-        toInverse["denH3"] = mulL3;
+        toInverse.push_back(mulL1);
+        toInverse.push_back(mulL2);
+        toInverse.push_back(mulL3);
 
         FrElement alpha = challenges["alpha"];
         FrElement alpha2 = E.fr.mul(alpha, alpha);
@@ -1685,9 +1679,12 @@ namespace Fflonk
         computeLiS3();
 
         FrElement mulAccumulator = E.fr.one();
-        for (auto &[key, value] : toInverse)
-        {
-            mulAccumulator = E.fr.mul(mulAccumulator, value);
+        for (u_int64_t index = 0; index < toInverse.size(); index++)
+        {   
+            ss << E.fr.toString(toInverse[index]);
+            mulAccumulator = E.fr.mul(mulAccumulator, toInverse[index]);
+            LOG_TRACE(ss);
+            ss.str("");
         }
 
         E.fr.inv(mulAccumulator, mulAccumulator);
@@ -1704,7 +1701,7 @@ namespace Fflonk
         {
             xiN = E.fr.square(xiN);
         }
-        toInverse["zh"] = E.fr.sub(xiN, E.fr.one());
+        toInversePublics.push_back(E.fr.sub(xiN, E.fr.one()));
 
         //   · L_i i=1 to num public inputs, needed in step 6 and 7 of the verifier to compute L_1(xi) and PI(xi)
         u_int32_t size = std::max(1, (int)zkey->nPublic);
@@ -1712,15 +1709,13 @@ namespace Fflonk
         FrElement w = E.fr.one();
         for (u_int64_t i = 0; i < size; i++)
         {
-            ss.str("");
-            ss << "Li_" << (i + 1);
-            toInverse[ss.str()] = E.fr.mul(E.fr.set(zkey->domainSize), E.fr.sub(challenges["xi"], w));
+            toInversePublics.push_back(E.fr.mul(E.fr.set(zkey->domainSize), E.fr.sub(challenges["xi"], w)));
         }
 
         FrElement mulAccumulator = E.fr.one();
-        for (auto &[key, value] : toInverse)
+        for (u_int64_t index = 0; index < toInversePublics.size(); index++)
         {
-            mulAccumulator = E.fr.mul(mulAccumulator, value);
+            mulAccumulator = E.fr.mul(mulAccumulator, toInversePublics[index]);
         }
 
         E.fr.inv(mulAccumulator, mulAccumulator);
@@ -1740,16 +1735,13 @@ namespace Fflonk
         den1 = E.fr.mul(den1, roots["S0h0"][0]);
         den1 = E.fr.mul(den1, roots["S0h0"][0]);
         den1 = E.fr.mul(den1, roots["S0h0"][0]);
-        den1 = E.fr.mul(den1, roots["S0h0"][0]);
 
-        for (uint j = 0; j < 4; j++) {
+        for (uint j = 0; j < 8; j++) {
 
             FrElement den2 = roots["S0h0"][(7 * j) % 8];
             FrElement den3 = E.fr.sub(challenges["y"], roots["S0h0"][j]);
 
-            ss.str("");
-            ss << "LiS0_" << (j + 1);
-            toInverse[ss.str()] = E.fr.mul(E.fr.mul(den1, den2), den3);
+            toInverse.push_back(E.fr.mul(E.fr.mul(den1, den2), den3));
         }
         return;
     }
@@ -1766,9 +1758,7 @@ namespace Fflonk
             FrElement den2 = roots["S1h1"][(3 * j) % 4];
             FrElement den3 = E.fr.sub(challenges["y"], roots["S1h1"][j]);
 
-            ss.str("");
-            ss << "LiS1_" << (j + 1);
-            toInverse[ss.str()] = E.fr.mul(E.fr.mul(den1, den2), den3);
+            toInverse.push_back(E.fr.mul(E.fr.mul(den1, den2), den3));
         }
         return;
     }
@@ -1776,15 +1766,9 @@ namespace Fflonk
     template <typename Engine>
     void FflonkProver<Engine>::computeLiS2()
     {    
-        std::ostringstream ss;
+        toInverse.push_back(E.fr.sub(roots["S2h2"][0], roots["S2h3"][0]));
 
-        ss.str("");
-        ss << "LiS2_0";
-        toInverse[ss.str()] = E.fr.sub(roots["S2h2"][0], roots["S2h3"][0]);
-
-        ss.str("");
-        ss << "LiS2_1";
-        toInverse[ss.str()] = E.fr.sub(roots["S2h3"][0], roots["S2h2"][0]);
+        toInverse.push_back(E.fr.sub(roots["S2h3"][0], roots["S2h2"][0]));
 
         return;
     }
@@ -1792,7 +1776,6 @@ namespace Fflonk
     template <typename Engine>
     void FflonkProver<Engine>::computeLiS3()
     {    
-        std::ostringstream ss;
 
         // Compute L_i^{(S3)}(y)
         FrElement den1 = E.fr.mul(E.fr.set(2), E.fr.sub(challenges["xi"], challenges["xiw"]));
@@ -1800,9 +1783,7 @@ namespace Fflonk
             FrElement den2 = roots["S3h4"][j % 2];
             FrElement den3 = E.fr.sub(challenges["y"], roots["S3h4"][j]);
              
-            ss.str("");
-            ss << "LiS3_" << (j + 1);
-            toInverse[ss.str()] = E.fr.mul(E.fr.mul(den1, den2), den3);
+            toInverse.push_back(E.fr.mul(E.fr.mul(den1, den2), den3));
         }
 
         den1 = E.fr.mul(E.fr.set(2), E.fr.sub(challenges["xiw"], challenges["xi"]));
@@ -1810,9 +1791,7 @@ namespace Fflonk
             FrElement den2 = roots["S3h5"][j % 2];
             FrElement den3 = E.fr.sub(challenges["y"], roots["S3h5"][j]);
              
-            ss.str("");
-            ss << "LiS3_" << (j + 3);
-            toInverse[ss.str()] = E.fr.mul(E.fr.mul(den1, den2), den3);
+            toInverse.push_back(E.fr.mul(E.fr.mul(den1, den2), den3));
         }
         return;
     }
