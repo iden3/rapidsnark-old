@@ -68,7 +68,8 @@ namespace Fflonk {
         std::map<std::string, Polynomial<Engine> *> polynomials;
         std::map<std::string, Evaluations<Engine> *> evaluations;
 
-        std::map <std::string, FrElement> toInverse;
+        std::vector <FrElement> toInverse;
+        std::vector <FrElement> toInversePublics;
         std::map <std::string, FrElement> challenges;
         std::map<std::string, FrElement *> roots;
         std::map<std::string, FrElement *> omegas;
