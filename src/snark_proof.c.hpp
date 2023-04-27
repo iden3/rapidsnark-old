@@ -60,28 +60,40 @@ typename Engine::FrElement SnarkProof<Engine>::getEvaluationCommitment(const std
 }
 
 template<typename Engine>
-json SnarkProof<Engine>::toJson() {
+json SnarkProof<Engine>::toJson(bool splitPolsEvals) {
     json jsonProof;
 
-    jsonProof["polynomials"] = {};
-    jsonProof["evaluations"] = {};
+    if(splitPolsEvals) {
+        jsonProof["polynomials"] = {};
+        jsonProof["evaluations"] = {};
+    }
 
     for (auto &[key, point]: this->polynomialCommitments) {
         G1PointAffine tmp;
         E.g1.copy(tmp, point);
 
-        jsonProof["polynomials"][key] = {};
-
         std::string x = E.f1.toString(tmp.x);
         std::string y = E.f1.toString(tmp.y);
 
-        jsonProof["polynomials"][key].push_back(x);
-        jsonProof["polynomials"][key].push_back(y);
-        jsonProof["polynomials"][key].push_back("1");
+        if(splitPolsEvals) {
+            jsonProof["polynomials"][key] = {};
+            jsonProof["polynomials"][key].push_back(x);
+            jsonProof["polynomials"][key].push_back(y);
+            jsonProof["polynomials"][key].push_back("1");
+        } else {
+            jsonProof[key] = {};
+            jsonProof[key].push_back(x);
+            jsonProof[key].push_back(y);
+            jsonProof[key].push_back("1");
+        }
     }
 
     for (auto &[key, element]: this->evaluationCommitments) {
-        jsonProof["evaluations"][key] = E.fr.toString(element);
+        if(splitPolsEvals) {
+           jsonProof["evaluations"][key] = E.fr.toString(element);
+        } else {
+            jsonProof[key] = E.fr.toString(element);
+        }
     }
 
     jsonProof["protocol"] = this->protocol;

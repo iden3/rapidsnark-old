@@ -66,7 +66,7 @@ function buildProverServer() {
 
 
 function buildProver() {
-    sh("g++" +
+    sh("g++ -g " +
         " -I."+
         " -I../src"+
         " -I../depends/ffiasm/c"+
@@ -76,6 +76,7 @@ function buildProver() {
         " ../src/zkey_utils.cpp"+
         " ../src/zkey.cpp"+
         " ../src/zkey_fflonk.cpp"+
+        " ../src/zkey_plonk.cpp"+
         " ../src/curve_utils.cpp"+
         " ../src/wtns_utils.cpp"+
         " ../src/keccak_wrapper.cpp"+
@@ -108,6 +109,7 @@ function compile() {
         " ../src/zkey_utils.cpp"+
         " ../src/zkey.cpp"+
         " ../src/zkey_fflonk.cpp"+
+        " ../src/zkey_plonk.cpp"+
         " ../src/curve_utils.cpp"+
         " ../src/wtns_utils.cpp"+
         " ../src/keccak_wrapper.cpp"+

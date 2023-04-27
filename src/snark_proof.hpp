@@ -32,7 +32,7 @@ public :
 
     FrElement getEvaluationCommitment(const std::string &key);
 
-    json toJson();
+    json toJson(bool splitPolsEvals = true);
 };
 
 #include "snark_proof.c.hpp"
