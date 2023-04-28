@@ -850,7 +850,7 @@ namespace Plonk
 
         FrElement alpha2 = E.fr.square(challenges["alpha"]);
 
-        //        #pragma omp parallel for
+        #pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize * 4; i++)
         {
             FrElement omega = fft->root(zkeyPower + 2, i);
@@ -1147,6 +1147,7 @@ namespace Plonk
         const FrElement coefs3 = e3;
         const FrElement coefz = E.fr.add(e2, e4);
 
+        #pragma omp parallel for
         for (uint32_t i = 0; i < zkey->domainSize + 3; i++)
         {
             FrElement v = E.fr.mul(coefz, polynomials["Z"]->coef[i]);
@@ -1179,6 +1180,7 @@ namespace Plonk
 
         const FrElement xi2m = E.fr.square(challenges["xim"]);
 
+        #pragma omp parallel for
         for (u_int32_t i = 0; i < zkey->domainSize + 6; i++)
         {
             const FrElement polTHigh = polynomials["T"]->coef[zkey->domainSize * 2 + i];
@@ -1289,7 +1291,7 @@ namespace Plonk
         int nThreads = omp_get_max_threads() / 2;
         ThreadUtils::parset(result, 0, length * sizeof(FrElement), nThreads);
 
-#pragma omp parallel for
+        #pragma omp parallel for
         for (u_int32_t index = 0; index < length; ++index)
         {
             E.fr.fromMontgomery(result[index], polynomial->coef[index]);
