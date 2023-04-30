@@ -9,7 +9,7 @@ function createFieldSources() {
     sh("npm install", {cwd: "depends/ffiasm"});
     sh("node ../depends/ffiasm/src/buildzqfield.js -q 21888242871839275222246405745257275088696311157297823662689037894645226208583 -n Fq", {cwd: "build"});
     sh("node ../depends/ffiasm/src/buildzqfield.js -q 21888242871839275222246405745257275088548364400416034343698204186575808495617 -n Fr", {cwd: "build"});
-    
+
     if (process.platform === "darwin") {
         sh("nasm -fmacho64 --prefix _ fq.asm", {cwd: "build"});
     }  else if (process.platform === "linux") {
@@ -27,7 +27,7 @@ function buildPistache() {
     sh("git submodule init && git submodule update");
     sh("mkdir -p build", {cwd: "depends/pistache"});
     sh("cmake -G \"Unix Makefiles\" -DCMAKE_BUILD_TYPE=Release ..", {cwd: "depends/pistache/build"});
-    sh("make", {cwd: "depends/pistache/build"});
+    sh("make", {cwd: "depends/pistache"});
 }
 
 
