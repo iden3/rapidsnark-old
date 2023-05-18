@@ -1584,6 +1584,7 @@ namespace Fflonk
             ss.str("");
             ss << "Li_" << (i + 1);
             toInverse[ss.str()] = E.fr.mul(E.fr.set(zkey->domainSize), E.fr.sub(challenges["xi"], w));
+            w = E.fr.mul(w, fft->root(zkeyPower, 1));
         }
 
         FrElement mulAccumulator = E.fr.one();
