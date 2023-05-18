@@ -366,8 +366,6 @@ namespace Plonk
 
             // Initialize polynomial
             polynomials["R"] = new Polynomial<Engine>(E, polPtr["R"], zkey->domainSize * 2);
-            polynomials["Wxi"] = new Polynomial<Engine>(E, polPtr["Wxi"], zkey->domainSize * 2);
-            polynomials["Wxiw"] = new Polynomial<Engine>(E, polPtr["Wxiw"], zkey->domainSize * 2);
             polynomials["T1"] = new Polynomial<Engine>(E, polPtr["T1"], zkey->domainSize * 2);
             polynomials["T2"] = new Polynomial<Engine>(E, polPtr["T2"], zkey->domainSize * 2);
             polynomials["T3"] = new Polynomial<Engine>(E, polPtr["T3"], zkey->domainSize * 2);
@@ -579,14 +577,12 @@ namespace Plonk
     template <typename Engine>
     void PlonkProver<Engine>::round1()
     {
-        // STEP 1.1 - Generate random blinding scalars (b_1, ..., b9) ∈ F
-
+        // STEP 1.1 - Generate random blinding scalars (b1, ..., b11) ∈ F
         // 0 index not used, set to zero
-        for (u_int32_t i = 1; i <= PLONK_BLINDINGFACTORSLENGTH; i++)
+        for (u_int32_t i = 1; i < PLONK_BLINDINGFACTORSLENGTH; i++)
         {
-            blindingFactors[i] = E.fr.one();
-            // memset((void *)&(blindingFactors[i].v[0]), 0, sizeof(FrElement));
-            // randombytes_buf((void *)&(blindingFactors[i].v[0]), sizeof(FrElement) - 1);
+            memset((void *)&(blindingFactors[i].v[0]), 0, sizeof(FrElement));
+            randombytes_buf((void *)&(blindingFactors[i].v[0]), sizeof(FrElement) - 1);
         }
 
         // STEP 1.2 - Compute wire polynomials a(X), b(X) and c(X)
@@ -594,7 +590,7 @@ namespace Plonk
         computeWirePolynomials();
 
         // The first output of the prover is {[A]_1, [B]_1, [C]_1}
-        LOG_TRACE("> Computing A, B, C multi exponentiation");
+        LOG_TRACE("> Computing A, B, C MSM");
         G1Point A = multiExponentiation(polynomials["A"]);
         G1Point B = multiExponentiation(polynomials["B"]);
         G1Point C = multiExponentiation(polynomials["C"]);
@@ -668,11 +664,19 @@ namespace Plonk
         // Compute permutation challenge beta
         LOG_TRACE("> Computing challenges beta and gamma");
         transcript->reset();
-        
-        for (u_int32_t i = 0; i < zkey->nPublic; i++)
-        {
-            //transcript->addScalar(E.fr.one());//buffers["A"][i]);
-        }
+
+        transcript->addPolCommitment(*((G1PointAffine *)zkey->QM));
+        transcript->addPolCommitment(*((G1PointAffine *)zkey->QL));
+        transcript->addPolCommitment(*((G1PointAffine *)zkey->QR));
+        transcript->addPolCommitment(*((G1PointAffine *)zkey->QO));
+        transcript->addPolCommitment(*((G1PointAffine *)zkey->QC));
+        transcript->addPolCommitment(*((G1PointAffine *)zkey->S1));
+        transcript->addPolCommitment(*((G1PointAffine *)zkey->S2));
+        transcript->addPolCommitment(*((G1PointAffine *)zkey->S3));
+         for (u_int32_t i = 0; i < zkey->nPublic; i++)
+         {
+            transcript->addScalar(buffers["A"][i]);
+         }
 
         transcript->addPolCommitment(proof->getPolynomialCommitment("A"));
         transcript->addPolCommitment(proof->getPolynomialCommitment("B"));
@@ -813,10 +817,12 @@ namespace Plonk
         LOG_TRACE("> Computing challenge alpha");
         // STEP 3.1 - Compute evaluation challenge xi ∈ S
         transcript->reset();
-        //transcript->addScalar(challenges["gamma"]);
+        transcript->addScalar(challenges["beta"]);
+        transcript->addScalar(challenges["gamma"]);
         transcript->addPolCommitment(proof->getPolynomialCommitment("Z"));
 
         challenges["alpha"] = transcript->getChallenge();
+        challenges["alpha2"] = E.fr.square(challenges["alpha"]);
 
         std::ostringstream ss;
         ss << "··· challenges.alpha: " << E.fr.toString(challenges["alpha"]);
@@ -845,10 +851,6 @@ namespace Plonk
     void PlonkProver<Engine>::computeT()
     {
         LOG_TRACE("··· Computing T evaluations");
-
-        std::ostringstream ss;
-
-        FrElement alpha2 = E.fr.square(challenges["alpha"]);
 
         #pragma omp parallel for
         for (u_int64_t i = 0; i < zkey->domainSize * 4; i++)
@@ -949,10 +951,10 @@ namespace Plonk
             FrElement e4 = E.fr.sub(z, E.fr.one());
             FrElement lagrange1 = evaluations["lagrange"]->eval[i];
             e4 = E.fr.mul(e4, lagrange1);
-            e4 = E.fr.mul(e4, alpha2);
+            e4 = E.fr.mul(e4, challenges["alpha2"]);
 
             FrElement e4z = E.fr.mul(zp, lagrange1);
-            e4z = E.fr.mul(e4z, alpha2);
+            e4z = E.fr.mul(e4z, challenges["alpha2"]);
 
             FrElement e = E.fr.add(E.fr.sub(E.fr.add(e1, e2), e3), e4);
             FrElement ez = E.fr.add(E.fr.sub(E.fr.add(e1z, e2z), e3z), e4z);
@@ -965,6 +967,7 @@ namespace Plonk
         LOG_TRACE("··· Computing T ifft");
         polynomials["T"] = Polynomial<Engine>::fromEvaluations(E, fft, buffers["T"], polPtr["T"], zkey->domainSize * 4);
         // Divide the polynomial T1 by Z_H(X)
+        LOG_TRACE("··· Computing T / ZH");
         polynomials["T"]->divZh(zkey->domainSize, 4);
 
         // Compute the coefficients of the polynomial T1z(X) from buffers.T1z
@@ -1018,9 +1021,9 @@ namespace Plonk
         const FrElement lowestHigh = E.fr.sub(polynomials["T3"]->coef[0], blindingFactors[11]);
         polynomials["T3"]->coef[0] = lowestHigh;
 
-        polynomials["T1"]->fixDegree();
-        polynomials["T2"]->fixDegree();
-        polynomials["T3"]->fixDegree();
+        polynomials["T1"]->fixDegreeFrom(zkey->domainSize);
+        polynomials["T2"]->fixDegreeFrom(zkey->domainSize);
+        polynomials["T3"]->fixDegreeFrom(zkey->domainSize+5);
     }
 
     // ROUND 4
@@ -1030,12 +1033,13 @@ namespace Plonk
         LOG_TRACE("> Computing challenge xi");
         // STEP 3.1 - Compute evaluation challenge xi ∈ S
         transcript->reset();
-        //transcript->addScalar(challenges["gamma"]);
+        transcript->addScalar(challenges["alpha"]);
         transcript->addPolCommitment(proof->getPolynomialCommitment("T1"));
         transcript->addPolCommitment(proof->getPolynomialCommitment("T2"));
         transcript->addPolCommitment(proof->getPolynomialCommitment("T3"));
 
         challenges["xi"] = transcript->getChallenge();
+        challenges["xiw"] = E.fr.mul(challenges["xi"], fft->root(zkeyPower, 1));
 
         std::ostringstream ss;
         ss << "··· challenges.xi: " << E.fr.toString(challenges["xi"]);
@@ -1048,10 +1052,6 @@ namespace Plonk
         proof->addEvaluationCommitment("eval_c", polynomials["C"]->fastEvaluate(challenges["xi"]));
         proof->addEvaluationCommitment("eval_s1", polynomials["Sigma1"]->fastEvaluate(challenges["xi"]));
         proof->addEvaluationCommitment("eval_s2", polynomials["Sigma2"]->fastEvaluate(challenges["xi"]));
-        proof->addEvaluationCommitment("t", polynomials["T"]->fastEvaluate(challenges["xi"]));
-
-        challenges["xiw"] = E.fr.mul(challenges["xi"], fft->root(zkeyPower, 1));
-
         proof->addEvaluationCommitment("eval_zw", polynomials["Z"]->fastEvaluate(challenges["xiw"]));
     }
 
@@ -1061,26 +1061,25 @@ namespace Plonk
     {
         LOG_TRACE("> Computing challenge v");
 
-        // STEP 5.2 - Compute linearisation polynomial r(X)
-        LOG_TRACE("> Computing linearisation polynomial r(X)");
-        computeR();
-
-        // STEP 5.1 - Compute challenge v ∈ F
+        // STEP 5.1 - Compute evaluation challenge v ∈ F
         transcript->reset();
-        //transcript->addScalar(challenges["xi"]);
+        transcript->addScalar(challenges["xi"]);
         transcript->addScalar(proof->getEvaluationCommitment("eval_a"));
         transcript->addScalar(proof->getEvaluationCommitment("eval_b"));
         transcript->addScalar(proof->getEvaluationCommitment("eval_c"));
         transcript->addScalar(proof->getEvaluationCommitment("eval_s1"));
         transcript->addScalar(proof->getEvaluationCommitment("eval_s2"));
         transcript->addScalar(proof->getEvaluationCommitment("eval_zw"));
-        transcript->addScalar(proof->getEvaluationCommitment("eval_r"));
 
         challenges["v"] = transcript->getChallenge();
 
         std::ostringstream ss;
         ss << "··· challenges.v: " << E.fr.toString(challenges["v"]);
         LOG_TRACE(ss);
+
+        // STEP 5.2 - Compute linearisation polynomial r(X)
+        LOG_TRACE("> Computing linearisation polynomial r(X)");
+        computeR();
 
         LOG_TRACE("> Computing opening proof polynomial Wxi(X)");
         computeWxi();
@@ -1101,6 +1100,29 @@ namespace Plonk
     template <typename Engine>
     void PlonkProver<Engine>::computeR()
     {
+        challenges["xim"] = challenges["xi"];
+        for (uint32_t i = 0; i < zkeyPower; i++) {
+            challenges["xim"] = E.fr.square(challenges["xim"]);
+        }
+
+        challenges["zh"] = E.fr.sub(challenges["xim"], E.fr.one());
+
+        FrElement n = E.fr.set(zkey->domainSize);
+        FrElement L[zkey->nPublic+1];
+        for (u_int32_t i = 1; i <= zkey->nPublic; i++)
+        {
+            FrElement omega = fft->root(zkeyPower, i-1);
+            E.fr.div(L[i], E.fr.mul(omega, challenges["zh"]), E.fr.mul(n, E.fr.sub(challenges["xi"], omega)));
+        }
+
+        FrElement eval_pi = E.fr.zero();
+        for (u_int32_t i = 1; i <= zkey->nPublic; i++)
+        {
+            FrElement aVal = buffers["A"][i-1];
+            eval_pi = E.fr.sub(eval_pi, E.fr.mul(L[i], aVal));
+        }
+
+        // Compute constant parts of R(X)
         const FrElement coef_ab = E.fr.mul(proof->getEvaluationCommitment("eval_a"), proof->getEvaluationCommitment("eval_b"));
 
         FrElement e2a = proof->getEvaluationCommitment("eval_a");
@@ -1127,14 +1149,9 @@ namespace Plonk
         e3b = E.fr.add(e3b, challenges["gamma"]);
 
         FrElement e3 = E.fr.mul(e3a, e3b);
-        e3 = E.fr.mul(e3, challenges["beta"]);
         e3 = E.fr.mul(e3, proof->getEvaluationCommitment("eval_zw"));
         e3 = E.fr.mul(e3, challenges["alpha"]);
 
-        challenges["xim"] = challenges["xi"];
-        for (uint32_t i = 0; i < zkeyPower; i++) {
-            challenges["xim"] = E.fr.square(challenges["xim"]);
-        }
 
         FrElement eval_l1;
         E.fr.div(
@@ -1142,30 +1159,35 @@ namespace Plonk
             E.fr.sub(challenges["xim"], E.fr.one()),
             E.fr.mul(E.fr.sub(challenges["xi"], E.fr.one()), E.fr.set(zkey->domainSize)));
 
-        const FrElement e4 = E.fr.mul(eval_l1, E.fr.square(challenges["alpha"]));
+        const FrElement e4 = E.fr.mul(eval_l1, challenges["alpha2"]);
 
-        const FrElement coefs3 = e3;
-        const FrElement coefz = E.fr.add(e2, e4);
+        polynomials["R"]->add(*polynomials["QM"], coef_ab);
+        polynomials["R"]->add(*polynomials["QL"],  proof->getEvaluationCommitment("eval_a"));
+        polynomials["R"]->add(*polynomials["QR"],  proof->getEvaluationCommitment("eval_b"));
+        polynomials["R"]->add(*polynomials["QO"],  proof->getEvaluationCommitment("eval_c"));
+        polynomials["R"]->add(*polynomials["QC"]);
+        polynomials["R"]->add(*polynomials["Z"], e2);
+        polynomials["R"]->sub(*polynomials["Sigma3"], E.fr.mul(e3, challenges["beta"]));
+        polynomials["R"]->add(*polynomials["Z"], e4);
 
-        #pragma omp parallel for
-        for (uint32_t i = 0; i < zkey->domainSize + 3; i++)
-        {
-            FrElement v = E.fr.mul(coefz, polynomials["Z"]->coef[i]);
-            if (i < zkey->domainSize)
-            {
-                v = E.fr.add(v, E.fr.mul(coef_ab, polynomials["QM"]->coef[i]));
-                v = E.fr.add(v, E.fr.mul(proof->getEvaluationCommitment("eval_a"), polynomials["QL"]->coef[i]));
-                v = E.fr.add(v, E.fr.mul(proof->getEvaluationCommitment("eval_b"), polynomials["QR"]->coef[i]));
-                v = E.fr.add(v, E.fr.mul(proof->getEvaluationCommitment("eval_c"), polynomials["QO"]->coef[i]));
-                v = E.fr.add(v, polynomials["QC"]->coef[i]);
-                v = E.fr.sub(v, E.fr.mul(coefs3, polynomials["Sigma3"]->coef[i]));
-            }
-            polynomials["R"]->coef[i] = v;
-        }
+        FrElement xim2 = E.fr.square(challenges["xim"]);
+        polynomials["T3"]->mulScalar(xim2);
+        polynomials["T3"]->add(*polynomials["T2"], challenges["xim"]);
+        polynomials["T3"]->add(*polynomials["T1"]);
+        polynomials["T3"]->mulScalar(challenges["zh"]);
 
-        polynomials["R"]->fixDegree();
+        polynomials["R"]->sub(*polynomials["T3"]);
 
-        proof->addEvaluationCommitment("eval_r", polynomials["R"]->fastEvaluate(challenges["xi"]));
+        FrElement r0 = E.fr.sub(
+            eval_pi,
+            E.fr.mul(e3, E.fr.add(proof->getEvaluationCommitment("eval_c"), challenges["gamma"]))
+        );
+
+        r0 = E.fr.sub(r0, e4);
+
+        polynomials["R"]->addScalar(r0);
+
+        polynomials["R"]->fixDegreeFrom(zkey->domainSize+5);
     }
 
     template <typename Engine>
@@ -1173,72 +1195,31 @@ namespace Plonk
     {
         FrElement v[6];
         v[0] = challenges["v"];
-        for (int i = 1; i < 6; i++)
+        for (int i = 1; i < 5; i++)
         {
             v[i] = E.fr.mul(v[0], v[i - 1]);
         }
 
-        const FrElement xi2m = E.fr.square(challenges["xim"]);
+        polynomials["Wxi"] = Polynomial<Engine>::fromPolynomial(E, *polynomials["R"], polPtr["Wxi"]);
 
-        #pragma omp parallel for
-        for (u_int32_t i = 0; i < zkey->domainSize + 6; i++)
-        {
-            const FrElement polTHigh = polynomials["T"]->coef[zkey->domainSize * 2 + i];
-            FrElement w = E.fr.mul(xi2m, polTHigh);
+        polynomials["Wxi"]->add(*polynomials["A"], v[0]);
+        polynomials["Wxi"]->add(*polynomials["B"], v[1]);
+        polynomials["Wxi"]->add(*polynomials["C"], v[2]);
+        polynomials["Wxi"]->add(*polynomials["Sigma1"], v[3]);
+        polynomials["Wxi"]->add(*polynomials["Sigma2"], v[4]);
 
-            if (i < zkey->domainSize + 3)
-            {
-                w = E.fr.add(w, E.fr.mul(v[0], polynomials["R"]->coef[i]));
-            }
+        FrElement val = E.fr.mul(v[0], proof->getEvaluationCommitment("eval_a"));
+        polynomials["Wxi"]->subScalar(val);
+        val = E.fr.mul(v[1], proof->getEvaluationCommitment("eval_b"));
+        polynomials["Wxi"]->subScalar(val);
+        val = E.fr.mul(v[2], proof->getEvaluationCommitment("eval_c"));
+        polynomials["Wxi"]->subScalar(val);
+        val = E.fr.mul(v[3], proof->getEvaluationCommitment("eval_s1"));
+        polynomials["Wxi"]->subScalar(val);
+        val = E.fr.mul(v[4], proof->getEvaluationCommitment("eval_s2"));
+        polynomials["Wxi"]->subScalar(val);
 
-            if (i < zkey->domainSize + 2)
-            {
-                w = E.fr.add(w, E.fr.mul(v[1], polynomials["A"]->coef[i]));
-                w = E.fr.add(w, E.fr.mul(v[2], polynomials["B"]->coef[i]));
-                w = E.fr.add(w, E.fr.mul(v[3], polynomials["C"]->coef[i]));
-            }
-
-            if (i < zkey->domainSize)
-            {
-                const FrElement polTLow = polynomials["T"]->coef[i];
-                w = E.fr.add(w, polTLow);
-
-                const FrElement polTMid = polynomials["T"]->coef[zkey->domainSize + i];
-                w = E.fr.add(w, E.fr.mul(challenges["xim"], polTMid));
-
-                w = E.fr.add(w, E.fr.mul(v[4], polynomials["Sigma1"]->coef[i]));
-                w = E.fr.add(w, E.fr.mul(v[5], polynomials["Sigma2"]->coef[i]));
-            }
-
-            // b_10 and b_11 blinding scalars were applied on round 3 to randomize the polynomials t_low, t_mid, t_high
-            // Subtract blinding scalar b_10 and b_11 to the lowest coefficient
-            if (i == 0)
-            {
-                w = E.fr.sub(w, E.fr.mul(xi2m, blindingFactors[11]));
-                w = E.fr.sub(w, E.fr.mul(challenges["xim"], blindingFactors[10]));
-            }
-
-            // Add blinding scalars b_10 and b_11 to the coefficient n
-            if (i == zkey->domainSize)
-            {
-                w = E.fr.add(w, blindingFactors[10]);
-                w = E.fr.add(w, E.fr.mul(challenges["xim"], blindingFactors[11]));
-            }
-
-            polynomials["Wxi"]->coef[i] = w;
-        }
-
-        FrElement w0 = polynomials["Wxi"]->coef[0];
-        w0 = E.fr.sub(w0, proof->getEvaluationCommitment("t"));
-        w0 = E.fr.sub(w0, E.fr.mul(v[0], proof->getEvaluationCommitment("eval_r")));
-        w0 = E.fr.sub(w0, E.fr.mul(v[1], proof->getEvaluationCommitment("eval_a")));
-        w0 = E.fr.sub(w0, E.fr.mul(v[2], proof->getEvaluationCommitment("eval_b")));
-        w0 = E.fr.sub(w0, E.fr.mul(v[3], proof->getEvaluationCommitment("eval_c")));
-        w0 = E.fr.sub(w0, E.fr.mul(v[4], proof->getEvaluationCommitment("eval_s1")));
-        w0 = E.fr.sub(w0, E.fr.mul(v[5], proof->getEvaluationCommitment("eval_s2")));
-        polynomials["Wxi"]->coef[0] = w0;
-
-        polynomials["Wxi"]->fixDegree();
+        polynomials["Wxi"]->fixDegreeFrom(zkey->domainSize+4);
 
         polynomials["Wxi"]->divByZerofier(1, challenges["xi"]);
     }
@@ -1246,14 +1227,11 @@ namespace Plonk
     template <typename Engine>
     void PlonkProver<Engine>::computeWxiw()
     {
-        int nThreads = omp_get_max_threads() / 2;
-        ThreadUtils::parcpy(polynomials["Wxiw"]->coef, polynomials["Z"]->coef, sDomain + 3 * sizeof(FrElement), nThreads);
+        polynomials["Wxiw"] = Polynomial<Engine>::fromPolynomial(E, *polynomials["Z"], polPtr["Wxiw"]);
+        FrElement val = proof->getEvaluationCommitment("eval_zw");
+        polynomials["Wxiw"]->subScalar(val);
 
-        FrElement w0 = polynomials["Wxiw"]->coef[0];
-        w0 = E.fr.sub(w0, proof->getEvaluationCommitment("eval_zw"));
-        polynomials["Wxiw"]->coef[0] = w0;
-
-        polynomials["Wxiw"]->fixDegree();
+        polynomials["Wxiw"]->fixDegreeFrom(zkey->domainSize+2);
 
         polynomials["Wxiw"]->divByZerofier(1, challenges["xiw"]);
     }

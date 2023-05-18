@@ -28,7 +28,7 @@ namespace Plonk {
         using FrElement = typename Engine::FrElement;
         using G1Point = typename Engine::G1Point;
         using G1PointAffine = typename Engine::G1PointAffine;
-
+        
         Engine &E;
         FFT<typename Engine::Fr> *fft = NULL;
 

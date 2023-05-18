@@ -21,6 +21,11 @@ class Polynomial {
     void initialize(u_int64_t length, u_int64_t blindLength = 0, bool createBuffer = true);
 
     static Polynomial<Engine>* computeLagrangePolynomial(u_int64_t i, FrElement xArr[], FrElement yArr[], u_int32_t length);
+
+    void add(Polynomial<Engine> &polynomial, bool mulFactor, FrElement factor);
+
+    void sub(Polynomial<Engine> &polynomial, bool mulFactor, FrElement factor);
+
 public:
     FrElement *coef;
 
@@ -68,8 +73,10 @@ public:
     typename Engine::FrElement fastEvaluate(FrElement point) const;
 
     void add(Polynomial<Engine> &polynomial);
+    void add(Polynomial<Engine> &polynomial, FrElement factor);
 
     void sub(Polynomial<Engine> &polynomial);
+    void sub(Polynomial<Engine> &polynomial, FrElement factor);
 
     void mulScalar(FrElement &value);
 

@@ -23,6 +23,13 @@ void Keccak256Transcript<Engine>::addPolCommitment(G1Point value) {
 }
 
 template<typename Engine>
+void Keccak256Transcript<Engine>::addPolCommitment(G1PointAffine value) {
+    ElementTypeStruct e = { .type = G1AffineType, .element = value};
+    elements.push_back(e);
+    groupElements++;
+}
+
+template<typename Engine>
 void Keccak256Transcript<Engine>::reset() {
     fieldElements = 0;
     groupElements = 0;
@@ -41,8 +48,11 @@ typename Engine::FrElement Keccak256Transcript<Engine>::getChallenge() {
         if(FrType == elements[i].type) {
             FrElement element = std::any_cast<FrElement>(elements[i].element);
             bytes += E.fr.toRprBE(element, data + bytes, E.fr.bytes());
-        } else {
+        } else if(G1Type == elements[i].type) {
             G1Point element = std::any_cast<G1Point>(elements[i].element);
+            bytes += toRprBE(element, data, bytes, sizeof(element));
+        } else {
+            G1PointAffine element = std::any_cast<G1PointAffine>(elements[i].element);
             bytes += toRprBE(element, data, bytes, sizeof(element));
         }
     }
@@ -54,20 +64,27 @@ typename Engine::FrElement Keccak256Transcript<Engine>::getChallenge() {
 }
 
 template <typename Engine>
-u_int64_t Keccak256Transcript<Engine>::toRprBE(G1Point &point, uint8_t *data, int64_t seek, int64_t size)
+u_int64_t Keccak256Transcript<Engine>::toRprBE(G1PointAffine &point, uint8_t *data, int64_t seek, int64_t size)
 {
     int64_t bytes = E.g1.F.bytes() * 2;
+
+    if (E.g1.isZero(point)) {
+        memset(data, 0, bytes);
+        return 0;
+    }
+    bytes = E.g1.F.toRprBE(point.x, data + seek, size);
+    bytes += E.g1.F.toRprBE(point.y, data + seek + bytes, size);
+    return bytes;
+}
+
+template <typename Engine>
+u_int64_t Keccak256Transcript<Engine>::toRprBE(G1Point &point, uint8_t *data, int64_t seek, int64_t size)
+{
     typename Engine::G1PointAffine p;
 
     E.g1.copy(p, point);
 
-    if (E.g1.isZero(p)) {
-        memset(data, 0, bytes);
-        return 0;
-    }
-    bytes = E.g1.F.toRprBE(p.x, data + seek, size);
-    bytes += E.g1.F.toRprBE(p.y, data + seek + bytes, size);
-    return bytes;
+    return this->toRprBE(p, data, seek, size);
 }
 
 template <typename Engine>

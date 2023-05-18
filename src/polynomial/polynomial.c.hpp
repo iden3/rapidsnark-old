@@ -207,6 +207,16 @@ typename Engine::FrElement Polynomial<Engine>::fastEvaluate(FrElement point) con
 
 template<typename Engine>
 void Polynomial<Engine>::add(Polynomial<Engine> &polynomial) {
+    return this->add(polynomial, false, E.fr.zero());
+}
+
+template<typename Engine>
+void Polynomial<Engine>::add(Polynomial<Engine> &polynomial, FrElement factor) {
+    return this->add(polynomial, true, factor);
+}
+
+template<typename Engine>
+void Polynomial<Engine>::add(Polynomial<Engine> &polynomial, bool mulFactor, FrElement factor) {
     FrElement *newCoef = NULL;
     bool resize = polynomial.length > this->length;
 
@@ -221,8 +231,10 @@ void Polynomial<Engine>::add(Polynomial<Engine> &polynomial) {
     for (u_int64_t i = 0; i < std::max(thisLength, polyLength); i++) {
         FrElement a = i < thisLength ? this->coef[i] : E.fr.zero();
         FrElement b = i < polyLength ? polynomial.coef[i] : E.fr.zero();
-        FrElement sum;
-        E.fr.add(sum, a, b);
+
+        if(mulFactor) b = E.fr.mul(b, factor);
+
+        FrElement sum = E.fr.add(a, b);
 
         if (resize) {
             newCoef[i] = sum;
@@ -239,15 +251,28 @@ void Polynomial<Engine>::add(Polynomial<Engine> &polynomial) {
     fixDegree();
 }
 
-//TODO when the polynomial subtracted is bigger than the current one
 template<typename Engine>
 void Polynomial<Engine>::sub(Polynomial<Engine> &polynomial) {
+    return this->sub(polynomial, false, E.fr.zero());
+}
+
+template<typename Engine>
+void Polynomial<Engine>::sub(Polynomial<Engine> &polynomial, FrElement factor) {
+    return this->sub(polynomial, true, factor);
+}
+
+//TODO when the polynomial subtracted is bigger than the current one
+template<typename Engine>
+void Polynomial<Engine>::sub(Polynomial<Engine> &polynomial, bool mulFactor, FrElement factor) {
     u_int64_t length = std::max(this->length, polynomial.length);
 
     #pragma omp parallel for
     for (u_int64_t i = 0; i < length; i++) {
         FrElement a = i < this->length ? this->coef[i] : E.fr.zero();
         FrElement b = i < polynomial.length ? polynomial.coef[i] : E.fr.zero();
+
+        if(mulFactor) b = E.fr.mul(b, factor);
+
         this->coef[i] = E.fr.sub(a, b);
     }
 
