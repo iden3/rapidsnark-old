@@ -1,6 +1,6 @@
 # rapidsnark
 
-rapid snark is a zkSnark proof generation written in C++ and intel assembly. That generates proofs created in [circom](https://github.com/iden3/snarkjs) and [snarkjs](https://github.com/iden3/circom) very fast.
+rapid snark is a zkSnark proof generation written in C++ and intel assembly. That generates proofs created in [circom](https://github.com/iden3/circom) and [snarkjs](https://github.com/iden3/snarkjs) very fast.
 
 ## Dependencies
 
