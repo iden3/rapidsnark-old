@@ -4,15 +4,12 @@ rapid snark is a zkSnark proof generation written in C++ and intel assembly. Tha
 
 ## Dependencies
 
-You should have installed gcc, libsodium, and gmp (development)
+You should have installed gcc, cmake, libsodium, and gmp (development)
 
 In ubuntu:
 
 ````
-sudo apt install build-essential
-sudo apt-get install libgmp-dev
-sudo apt-get install libsodium-dev
-sudo apt-get install nasm
+sudo apt-get install build-essential cmake libgmp-dev libsodium-dev nasm
 ````
 
 ## Compile prover in standalone mode
