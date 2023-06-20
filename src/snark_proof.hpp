@@ -32,6 +32,10 @@ public :
 
     FrElement getEvaluationCommitment(const std::string &key);
 
+    std::string* getEvaluationsNames();
+
+    uint32_t getNumberEvaluations();
+
     json toJson();
 };
 

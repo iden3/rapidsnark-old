@@ -89,3 +89,27 @@ json SnarkProof<Engine>::toJson() {
 
     return jsonProof;
 }
+
+template<typename Engine>
+uint32_t SnarkProof<Engine>::getNumberEvaluations() {
+    return this->evaluationCommitments.size();
+}
+
+
+template<typename Engine>
+std::string* SnarkProof<Engine>::getEvaluationsNames() {
+    std::cout << this->evaluationCommitments.size() << std::endl;
+    std::string* evaluationsNames = new std::string[this->evaluationCommitments.size()];
+
+    uint32_t index = 0;
+    for (auto &[key, element]: this->evaluationCommitments) {
+        evaluationsNames[index++] = key;
+    }
+
+    std::cout << evaluationsNames->size() << std::endl;
+    for (uint32_t i = 0; i < this->evaluationCommitments.size(); ++i) {
+        std::cout << evaluationsNames[i] << std::endl;
+    }
+
+    return evaluationsNames;
+}

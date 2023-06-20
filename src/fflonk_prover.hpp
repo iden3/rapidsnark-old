@@ -71,6 +71,8 @@ namespace Fflonk {
         std::map <std::string, FrElement> toInverse;
         std::map <std::string, FrElement> challenges;
         std::map<std::string, FrElement *> roots;
+        std::map<std::string, FrElement *> omegas;
+
         FrElement blindingFactors[BLINDINGFACTORSLENGTH];
 
         Keccak256Transcript<Engine> *transcript;
@@ -127,36 +129,47 @@ namespace Fflonk {
         void computeC2();
 
         //ROUND 4 functions
-        void computeR0();
+        Polynomial<Engine>* computeRi(uint32_t degree, FrElement* rootsRi, Polynomial<Engine> * polynomialsF);
 
-        void computeR1();
+        std::map<std::string, Polynomial<Engine> *> computeR(std::map<std::string, FrElement *> rootsMap, std::map<std::string, Polynomial<Engine> *> polynomialsF);
 
-        void computeR2();
+        Polynomial<Engine>* computeW(FrElement challengeAlpha, std::map<std::string, Polynomial<Engine> *> polynomialsF, std::map<std::string, Polynomial<Engine> *> polynomialsR);
 
-        void computeF();
-
-        void computeZT();
+        Polynomial<Engine>* computeZT(std::map<std::string, FrElement *> rootsMap);
 
         //ROUND 5 functions
-        void computeL();
+        Polynomial<Engine>* computeWp(FrElement challengeY, FrElement challengeAlpha, std::map<std::string, FrElement *> rootsMap, std::map<std::string, Polynomial<Engine> *> polynomialsF, std::map<std::string, Polynomial<Engine> *> polynomialsR, Polynomial<Engine> * polynomialW);
 
-        void computeZTS2();
+        Polynomial<Engine>* computeL(FrElement challengeY, FrElement challengeAlpha, std::map<std::string, FrElement *> rootsMap, std::map<std::string, Polynomial<Engine> *> polynomialsF, std::map<std::string, Polynomial<Engine> *> polynomialsR, Polynomial<Engine> * polynomialW);
+
+        Polynomial<Engine>* computeZTS2(std::map<std::string, FrElement *> rootsMap);
 
         void batchInverse(FrElement *elements, u_int64_t length);
 
         FrElement *polynomialFromMontgomery(Polynomial<Engine> *polynomial);
 
-        FrElement getMontgomeryBatchedInverse();
+        FrElement getMontgomeryBatchedInverse(FrElement challengeXi, FrElement challengeY, std::map<std::string, FrElement *> rootsMap);
 
-        void computeLiS0();
-
-        void computeLiS1();
+        void computeLiSinglePoint(uint32_t index, uint32_t degree, FrElement challengesY, std::map<std::string, FrElement *> rootsMap);
 
         void computeLiS2();
 
         G1Point multiExponentiation(Polynomial<Engine> *polynomial);
 
         G1Point multiExponentiation(Polynomial<Engine> *polynomial, u_int32_t nx, u_int64_t x[]);
+
+        // Helpers
+
+        FrElement computeChallengeXiSeed(FrElement previousChallenge);
+
+        std::map<std::string, FrElement *> calculateRoots(FrElement challengeXiSeed);
+
+        FrElement computeChallengeAlpha(FrElement challengeXiSeed);
+        
+        FrElement computeChallengeY(FrElement challengeAlpha, G1Point W);
+        
+        void open(FrElement previousChallenge);
+
     };
 }
 
