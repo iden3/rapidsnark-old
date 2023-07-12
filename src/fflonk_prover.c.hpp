@@ -158,6 +158,7 @@ namespace Fflonk
             PTau = (G1PointAffine *)(evalPtr["lagrange"] + zkey->domainSize * 4 * zkey->nPublic);
 
             // Read Q selectors polynomials and evaluations
+            LOG_TRACE("> Loading zkey data");
             LOG_TRACE("... Loading QL, QR, QM, QO, & QC polynomial coefficients and evaluations");
 
             // Reserve memory for Q's polynomials

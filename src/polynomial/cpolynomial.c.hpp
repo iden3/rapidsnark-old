@@ -58,7 +58,7 @@ Polynomial<Engine> *CPolynomial<Engine>::getPolynomial(FrElement *reservedBuffer
         }
     }
 
-    polynomial->fixDegree();
+    polynomial->fixDegreeFrom(maxDegree);
 
     return polynomial;
 }
