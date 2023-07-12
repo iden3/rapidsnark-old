@@ -94,6 +94,36 @@ function buildProver() {
     );
 }
 
+function buildTest() {
+    sh("g++" +
+        " -I."+
+        " -I../src"+
+        " -I../depends/ffiasm/c"+
+        " -I../depends/json/single_include"+
+        " ../test/main_test.cpp"+
+        " ../test/polynomial.test.cpp"+
+        " ../src/binfile_utils.cpp"+
+        " ../src/zkey_utils.cpp"+
+        " ../src/zkey.cpp"+
+        " ../src/zkey_fflonk.cpp"+
+        " ../src/curve_utils.cpp"+
+        " ../src/wtns_utils.cpp"+
+        " ../src/keccak_wrapper.cpp"+
+        " ../src/logger.cpp"+
+        " ../depends/ffiasm/c/misc.cpp"+
+        " ../depends/ffiasm/c/naf.cpp"+
+        " ../depends/ffiasm/c/splitparstr.cpp"+
+        " ../depends/ffiasm/c/alt_bn128.cpp"+
+        " fq.cpp"+
+        " fq.o"+
+        " fr.cpp"+
+        " fr.o"+
+        " -o proverTest" +
+        " -Wall"+
+        " -fmax-errors=5 -std=c++17 -pthread -lgmp -lsodium -O3 -fopenmp -lgtest", {cwd: "build", nopipe: true}
+    );
+}
+
 function compile() {
     sh("g++ -c" +
         " -I."+
@@ -129,5 +159,6 @@ cli({
     buildPistche,
     buildProverServer,
     buildProver,
+    buildTest,
     compile
 })
