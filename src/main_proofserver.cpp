@@ -11,7 +11,7 @@ using namespace Pistache::Rest;
 int main(int argc, char **argv) {
     if (argc < 3) {
         std::cerr << "Invalid number of parameters:\n";
-        std::cerr << "Usage: proverServer <port> <circuit1.zkey> <circuit2.zkey> ... <circuitN.zkey> \n";
+        std::cerr << "Usage: proverServer <port> <path witness files> <circuit1.zkey> <circuit2.zkey> ... <circuitN.zkey> \n";
         return -1;
     }
 
