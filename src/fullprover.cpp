@@ -18,10 +18,11 @@ std::string getfilename(std::string path)
     return path.substr(0, dot_i);
 }
 
-FullProver::FullProver(std::string zkeyFileNames[], int size) {
+FullProver::FullProver(std::string zkeyFileNames[], std::string path, int size) {
     pendingInput="";
     pendingCircuit="";
     canceled = false;
+    pathProvingFiles = path;
 
     mpz_init(altBbn128r);
     mpz_set_str(altBbn128r, "21888242871839275222246405745257275088548364400416034343698204186575808495617", 10);
@@ -110,12 +111,12 @@ void FullProver::thread_calculateProve() {
         json j = json::parse(executingInput);
         std::string circuit = executingCircuit;
         
-        std::ofstream file("./input_"+ circuit +".json");
+        std::ofstream file(pathProvingFiles + "/input_"+ circuit +".json");
         file << j;
         file.close();
 
-        std::string witnessFile("./" + circuit + ".wtns");
-        std::string command("./" + circuit + " ./input_"+ circuit +".json " + witnessFile);
+        std::string witnessFile(pathProvingFiles + "/" + circuit + ".wtns");
+        std::string command(pathProvingFiles + "/" + circuit + " "+ pathProvingFiles + "/input_"+ circuit +".json " + witnessFile);
         LOG_TRACE(command);
         std::array<char, 128> buffer;
         std::string result;

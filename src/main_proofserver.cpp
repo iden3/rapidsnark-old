@@ -19,13 +19,14 @@ int main(int argc, char **argv) {
     Logger::getInstance()->updateLogLevel(LOG_LEVEL_DEBUG);
     LOG_INFO("Initializing server...");
     int port = std::stoi(argv[1]); // parse port
+    std::string path = argv[2]; // path for inputs/witness files
     // parse the zkeys
-    std::string zkeyFileNames[argc - 2];
-    for (int i = 0; i < argc - 2; i++) {
-        zkeyFileNames[i] = argv[i + 2];
+    std::string zkeyFileNames[argc - 3];
+    for (int i = 0; i < argc - 3; i++) {
+        zkeyFileNames[i] = argv[i + 3];
     }
 
-    FullProver fullProver(zkeyFileNames, argc - 2);
+    FullProver fullProver(zkeyFileNames, path, argc - 3);
     ProverAPI proverAPI(fullProver);
     Address addr(Ipv4::any(), Port(port));
 
