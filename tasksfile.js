@@ -59,6 +59,33 @@ function buildProverServer() {
     );
 }
 
+function buildProverServerWithExternalPistacheLib() {
+    sh("g++" +
+        " -I."+
+        " -I../src"+
+        " -I../depends/json/single_include"+
+        " -I../depends/ffiasm/c"+
+        " ../src/main_proofserver.cpp"+
+        " ../src/proverapi.cpp"+
+        " ../src/fullprover.cpp"+
+        " ../src/binfile_utils.cpp"+
+        " ../src/wtns_utils.cpp"+
+        " ../src/zkey_utils.cpp"+
+        " ../src/logger.cpp"+
+        " ../depends/ffiasm/c/misc.cpp"+
+        " ../depends/ffiasm/c/naf.cpp"+
+        " ../depends/ffiasm/c/splitparstr.cpp"+
+        " ../depends/ffiasm/c/alt_bn128.cpp"+
+        " fq.cpp"+
+        " fq.o"+
+        " fr.cpp"+
+        " fr.o"+
+        " -lpistache"+
+        " -o proverServer"+
+        " -fmax-errors=5 -pthread -std=c++17 -fopenmp -lgmp -lsodium -g -DSANITY_CHECK", {cwd: "build", nopipe: true}
+    );
+}
+
 
 function buildProver() {
     sh("g++" +
@@ -90,5 +117,6 @@ cli({
     createFieldSources,
     buildPistache,
     buildProverServer,
+    buildProverServerWithExternalPistacheLib,
     buildProver
 });
