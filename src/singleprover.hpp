@@ -11,8 +11,9 @@
  * One-shot prover server
  * 
  * 1. At server initialization, it reads a zkey file and instantiates a prover
- * 2. During its run, it reads a witness file and returns a proof
- * 
+ * 2. During its run, it receives a JSON input file 
+ *      2a) First it computes a witness
+ *      2b) Next it generates the ZKP
  */
 class SingleProver {
 
@@ -24,7 +25,7 @@ class SingleProver {
 public: 
     SingleProver(std::string zkeyFileName);
     ~SingleProver();
-    json startProve(std::string wtns);
+    json startProve(std::string input);
 };
 
 #endif // SINGLEPROVER_H

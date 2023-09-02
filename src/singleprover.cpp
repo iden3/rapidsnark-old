@@ -43,12 +43,46 @@ SingleProver::~SingleProver()
     mpz_clear(altBbn128r);
 }
 
-json SingleProver::startProve(std::string wtnsFileName)
+json SingleProver::startProve(std::string input)
 {
     LOG_INFO("SingleProver::startProve begin");
-    LOG_INFO(wtnsFileName);
 
-    auto wtns = BinFileUtils::openExisting(wtnsFileName, "wtns", 2);
+    // TODO: Do not log PII. prover->prove also logs the ZK proof, which we might not want to log.
+    LOG_DEBUG(input);
+
+    json j = json::parse(input);
+    std::ofstream file("./build/input.json");
+    file << j;
+    file.close();
+
+    std::string witnessFile("./build/witness.wtns");
+    std::string command("./build/zkLogin ./build/input.json " + witnessFile);
+    LOG_INFO(command);
+    std::array<char, 128> buffer;
+    std::string result;
+
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe)
+    {
+        throw std::runtime_error("Couldn't start command");
+    }
+    while (fgets(buffer.data(), 128, pipe) != NULL) {
+        result += buffer.data();
+    }
+    auto returnCode = pclose(pipe);
+
+    if (result != "") {
+        LOG_INFO("Unexpected result");
+        LOG_INFO(result);
+    }
+
+    if (returnCode != 0) {
+        LOG_INFO("Unexpected return code");
+        auto str = std::to_string(returnCode);
+        LOG_INFO(str);
+    }
+
+    auto wtns = BinFileUtils::openExisting(witnessFile, "wtns", 2);
     auto wtnsHeader = WtnsUtils::loadHeader(wtns.get());
     if (mpz_cmp(wtnsHeader->prime, altBbn128r) != 0) {
         throw std::invalid_argument( "different wtns curve" );
