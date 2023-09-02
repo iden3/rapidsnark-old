@@ -35,12 +35,12 @@ BinFile::BinFile(std::string fileName, std::string _type, uint32_t maxVersion) {
     pos = 4;
 
     if (type != _type) {
-        throw new std::invalid_argument("Invalid file type. It should be " + _type + " and it us " + type);
+        throw std::invalid_argument("Invalid file type. It should be " + _type + " and it is " + type);
     }
 
     version = readU32LE();
     if (version > maxVersion) {
-        throw new std::invalid_argument("Invalid version. It should be <=" + std::to_string(maxVersion) + " and it us " + std::to_string(version));
+        throw std::invalid_argument("Invalid version. It should be <=" + std::to_string(maxVersion) + " and it us " + std::to_string(version));
     }
 
     u_int32_t nSections = readU32LE();
@@ -70,15 +70,15 @@ BinFile::~BinFile() {
 void BinFile::startReadSection(u_int32_t sectionId, u_int32_t sectionPos) {
 
     if (sections.find(sectionId) == sections.end()) {
-        throw new std::range_error("Section does not exist: " + std::to_string(sectionId));
+        throw std::range_error("Section does not exist: " + std::to_string(sectionId));
     }
 
     if (sectionPos >= sections[sectionId].size()) {
-        throw new std::range_error("Section pos too big. There are " + std::to_string(sections[sectionId].size()) + " and it's trying to access section: " + std::to_string(sectionPos));
+        throw std::range_error("Section pos too big. There are " + std::to_string(sections[sectionId].size()) + " and it's trying to access section: " + std::to_string(sectionPos));
     }
 
     if (readingSection != NULL) {
-        throw new std::range_error("Already reading a section");
+        throw std::range_error("Already reading a section");
     }
 
     pos = (u_int64_t)(sections[sectionId][sectionPos].start) - (u_int64_t)addr;
@@ -89,7 +89,7 @@ void BinFile::startReadSection(u_int32_t sectionId, u_int32_t sectionPos) {
 void BinFile::endReadSection(bool check) {
     if (check) {
         if ((u_int64_t)addr + pos - (u_int64_t)(readingSection->start) != readingSection->size) {
-            throw new std::range_error("Invalid section size");
+            throw std::range_error("Invalid section size");
         }
     }
     readingSection = NULL;
@@ -98,11 +98,11 @@ void BinFile::endReadSection(bool check) {
 void *BinFile::getSectionData(u_int32_t sectionId, u_int32_t sectionPos) {
 
     if (sections.find(sectionId) == sections.end()) {
-        throw new std::range_error("Section does not exist: " + std::to_string(sectionId));
+        throw std::range_error("Section does not exist: " + std::to_string(sectionId));
     }
 
     if (sectionPos >= sections[sectionId].size()) {
-        throw new std::range_error("Section pos too big. There are " + std::to_string(sections[sectionId].size()) + " and it's trying to access section: " + std::to_string(sectionPos));
+        throw std::range_error("Section pos too big. There are " + std::to_string(sections[sectionId].size()) + " and it's trying to access section: " + std::to_string(sectionPos));
     }
 
     return  sections[sectionId][sectionPos].start;
@@ -111,11 +111,11 @@ void *BinFile::getSectionData(u_int32_t sectionId, u_int32_t sectionPos) {
 u_int64_t BinFile::getSectionSize(u_int32_t sectionId, u_int32_t sectionPos) {
 
     if (sections.find(sectionId) == sections.end()) {
-        throw new std::range_error("Section does not exist: " + std::to_string(sectionId));
+        throw std::range_error("Section does not exist: " + std::to_string(sectionId));
     }
 
     if (sectionPos >= sections[sectionId].size()) {
-        throw new std::range_error("Section pos too big. There are " + std::to_string(sections[sectionId].size()) + " and it's trying to access section: " + std::to_string(sectionPos));
+        throw std::range_error("Section pos too big. There are " + std::to_string(sections[sectionId].size()) + " and it's trying to access section: " + std::to_string(sectionPos));
     }
 
     return  sections[sectionId][sectionPos].size;

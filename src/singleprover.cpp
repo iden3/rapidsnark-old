@@ -35,7 +35,7 @@ SingleProver::SingleProver(std::string zkeyFileName) {
         zKey->getSectionData(9)     // pointsH1
     );
 
-    LOG_INFO("SingleProver::SingleProver: prover initialized from zkey");
+    LOG_INFO("SingleProver::SingleProver initialized from zkey");
 }
 
 SingleProver::~SingleProver()
