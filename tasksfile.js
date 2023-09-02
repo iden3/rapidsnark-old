@@ -40,7 +40,7 @@ function buildProverServer() {
         " -I../depends/ffiasm/c"+
         " ../src/main_proofserver.cpp"+
         " ../src/proverapi.cpp"+
-        " ../src/fullprover.cpp"+
+        " ../src/singleprover.cpp"+
         " ../src/binfile_utils.cpp"+
         " ../src/wtns_utils.cpp"+
         " ../src/zkey_utils.cpp"+

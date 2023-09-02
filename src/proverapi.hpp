@@ -1,20 +1,12 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
-#include "fullprover.hpp"
+#include "singleprover.hpp"
 
 using namespace Pistache;
 
 class ProverAPI {
-    FullProver &fullProver;
+    SingleProver &prover;
 public:
-    ProverAPI(FullProver &_fullProver) : fullProver(_fullProver) {};
-    void postStart(const Rest::Request& request, Http::ResponseWriter response);
-    void postStop(const Rest::Request& request, Http::ResponseWriter response);
+    ProverAPI(SingleProver &_prover) : prover(_prover) {};
     void postInput(const Rest::Request& request, Http::ResponseWriter response);
-    void postCancel(const Rest::Request& request, Http::ResponseWriter response);
-    void getStatus(const Rest::Request& request, Http::ResponseWriter response);
-
-    void getConfig(const Rest::Request& request, Http::ResponseWriter response);
-    void postConfig(const Rest::Request& request, Http::ResponseWriter response);
-
 };
