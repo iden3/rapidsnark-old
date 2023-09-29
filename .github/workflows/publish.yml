@@ -24,4 +24,4 @@ jobs:
       with:
         context: .
         push: true
-        tags: zkemail/rapidsnark:latest
+        tags: aayushg0/rapidsnark:latest
