@@ -2,8 +2,6 @@ name: Build Docker Image
 
 on:
   pull_request:
-    branches:
-      - main  # Trigger this workflow on pull requests to main branch
 
 jobs:
   build:
@@ -14,4 +12,4 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build Docker image
-      run: docker build -t your-image-name .
+      run: docker build .
