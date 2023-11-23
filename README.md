@@ -64,7 +64,7 @@ node tools/request.js <input.json> <circuit>
 ````
 ## Benchmark
 
-This prover uses intel assembly with ADX extensions and parallelizes as much as it can the proof generation. 
+This prover uses intel assembly with ADX extensions and parallelizes as much as it can the proof generation.
 
 The prover is much faster that snarkjs and faster than bellman.
 
