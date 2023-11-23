@@ -64,12 +64,9 @@ node tools/request.js <input.json> <circuit>
 ````
 ## Benchmark
 
-This prover uses intel assembly with ADX extensions and parallelizes as much as it can the proof generation. 
-
-The prover is much faster that snarkjs and faster than bellman.
-
-[TODO] Some comparation tests should be done.
-
+This prover uses intel assembly with ADX extensions and parallelizes as much as it can the proof generation.
+- rapidsnark vs snarkjs: an -80% proof generation time and memory consumption reduction was [measured](https://github.com/privacy-scaling-explorations/e2e-zk-ecdsa/tree/main/circuits/circom/benchmark) for a circuit with 3 millions non-linear constraints.
+- rapidsnark vs bellman: [TODO]
 
 ## License
 
