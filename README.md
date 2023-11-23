@@ -1,4 +1,6 @@
-:warning: **This is an original implementation of Rapidsnark. The new one is in the https://github.com/iden3/rapidsnark.**
+## Important note :warning: 
+
+**This is an original implementation of Rapidsnark. The new one is in the https://github.com/iden3/rapidsnark.**
 
 # rapidsnark
 
