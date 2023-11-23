@@ -160,7 +160,7 @@ void FullProver::thread_calculateProve() {
        
 
         calcFinished();
-    } catch (std::runtime_error e) {
+    } catch (std::runtime_error *e) {
         if (!isCanceled()) {
             errString = e.what();
         }
